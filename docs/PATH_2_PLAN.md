@@ -164,13 +164,64 @@ artifact, not intermediate state.
 - Writes `data/corpus/embeddings.json`: array of `{chunk_id, vector}`.
 - Voyage key pulled from `VOYAGE_API_KEY`.
 
-### 4.4 `lib/retrieval.ts` (next stage)
+### 4.4 `lib/retrieval.ts`
 
-- Loads `chunks.json` + `embeddings.json` once at process start.
-- `retrieve(query, k=4)` → embeds query via Voyage, cosine vs all
-  chunks, returns top-k with `slug`, `section_heading`, `text`.
-- In-memory only. 50 articles × ~8 chunks × 1024 dims × 4 bytes ≈ 1.6MB.
-  No vector DB.
+- Loads `chunks.json` + `embeddings.json` once at process start and
+  precomputes L2 norms per vector, so each retrieve() call is one
+  dot product per chunk.
+- `retrieve(query, { k, threshold, request_id })` → embeds the query
+  via Voyage with `input_type="query"` (asymmetric to the document
+  embeddings), cosine-scores every chunk, returns the top-k with
+  their scores plus timing breakdown. Default `k=5`, default
+  `threshold=DEFAULT_RETRIEVAL_THRESHOLD` (see §4.4 calibration
+  below).
+- If the top-1 score is below `threshold`, returns `chunks: []` —
+  an explicit "no confident hit" signal the agent branches on
+  rather than grounding off weak retrieval.
+- Per-call JSONL log at `logs/retrieval.jsonl` (gitignored):
+  query, top_k_chunk_ids, top_k_scores, latencies, and a
+  caller-supplied `request_id` for correlation with chat sessions.
+- In-memory only. 265 chunks × 1024 dims × 4 bytes ≈ 1 MB of hot
+  vectors. Cosine over the whole set is ~2 ms; the query-embedding
+  round trip dominates at ~300 ms. No vector DB.
+
+#### Threshold calibration (2026-04-19 smoke test)
+
+Six-query smoke test against voyage-4-lite established the score
+distribution on this corpus: **noise ~0.20** (off-topic control),
+**weak on-topic 0.33–0.40** (short queries and identifier-style
+queries), **solid on-topic 0.54–0.65** (full-sentence semantic
+matches). The original 0.65 default filtered 4 of 5 on-topic queries.
+
+The default is set to **0.40** — approximately 2× the observed
+noise floor. It passes the three full-sentence on-topic queries
+(shipping, cast-iron care, gift-card + promo interaction) with
+margin and filters the weather-control query (0.20) comfortably.
+Two on-topic queries still filter at 0.40: the terse
+return-flow query (`"how do I return something I opened"`, top-1
+0.390) and the identifier query (`"FG-123456"`, top-1 0.331).
+Both represent the short-query asymmetry noted below; lowering
+the gate further to capture them would squeeze the noise margin
+and is a judgment call the agent can work around by calling the
+search tool only when its own policy block cannot answer. Q1
+(returns) and Q6 (order-number format) filter at 0.40 and are
+handled by `check_return_eligibility` and the system prompt
+respectively — retrieval is backup, not primary, for those
+paths. The constant is exported as `DEFAULT_RETRIEVAL_THRESHOLD`
+so callers reference the tuned value by name.
+
+Known asymmetry — worth capturing in the postmortem: short
+queries (e.g. `"FG-123456"` at 7 tokens) score ~0.10 lower than
+full-sentence queries on the same topic, even when the top-1
+chunk is semantically correct. voyage-4-lite's asymmetric
+embedding pairs a compressed query representation against
+richer document chunks; brevity compresses further. Mitigations
+we're not adopting in this build but should document: (a) a
+query-rewrite pass that expands terse queries before embedding,
+(b) a reranker as a second stage, (c) a per-query-length
+dynamic threshold. Any of the three moves the calibration
+question from "one knob" to "two knobs" — not worth the
+complexity at 50 articles.
 
 ### 4.5 Agent integration (next stage)
 

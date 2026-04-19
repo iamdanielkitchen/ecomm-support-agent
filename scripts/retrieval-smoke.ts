@@ -14,7 +14,11 @@
  */
 
 import { setTimeout as sleep } from "node:timers/promises";
-import { retrieve, corpusSize } from "../lib/retrieval.js";
+import {
+  retrieve,
+  corpusSize,
+  DEFAULT_RETRIEVAL_THRESHOLD,
+} from "../lib/retrieval.js";
 
 const QUERIES: ReadonlyArray<{ q: string; expect: string }> = [
   {
@@ -43,7 +47,6 @@ const QUERIES: ReadonlyArray<{ q: string; expect: string }> = [
   },
 ];
 
-const DEFAULT_THRESHOLD = 0.65;
 const PACE_MS = 21_000;
 
 function fmtScore(n: number): string {
@@ -57,7 +60,7 @@ function fmtChunk(chunk_id: string, heading: string | null, title: string): stri
 
 async function main() {
   process.stdout.write(`corpus size: ${corpusSize()} chunks\n`);
-  process.stdout.write(`default threshold: ${DEFAULT_THRESHOLD}\n\n`);
+  process.stdout.write(`default threshold: ${DEFAULT_RETRIEVAL_THRESHOLD}\n\n`);
 
   for (let i = 0; i < QUERIES.length; i++) {
     const entry = QUERIES[i]!;
@@ -72,7 +75,7 @@ async function main() {
     });
 
     const top1 = result.scores[0] ?? 0;
-    const passes = top1 >= DEFAULT_THRESHOLD;
+    const passes = top1 >= DEFAULT_RETRIEVAL_THRESHOLD;
 
     process.stdout.write(`Q${i + 1}: "${q}"\n`);
     process.stdout.write(`      expect: ${expect}\n`);
@@ -85,7 +88,7 @@ async function main() {
     }
     const mark = passes ? "passes" : "FILTERED";
     process.stdout.write(
-      `      ${mark} default threshold (top-1 ${fmtScore(top1)} ${passes ? ">=" : "<"} ${DEFAULT_THRESHOLD})\n`,
+      `      ${mark} default threshold (top-1 ${fmtScore(top1)} ${passes ? ">=" : "<"} ${DEFAULT_RETRIEVAL_THRESHOLD})\n`,
     );
     process.stdout.write(
       `      embed ${result.query_embedding_ms}ms · cosine ${result.cosine_ms}ms · total ${result.latency_ms}ms · ${result.query_tokens} q-tok\n\n`,

@@ -12,9 +12,10 @@
  * over the whole set is ~5 ms; dwarfed by the query-embedding round
  * trip (~300 ms). Upgrade path is "swap to pg_vector at 10K chunks".
  *
- * Threshold gate: if the top-1 score is below threshold (default 0.65),
- * retrieve() returns chunks: [] — an explicit "I don't have that"
- * signal the agent can branch on, so it avoids grounding on weak hits.
+ * Threshold gate: if the top-1 score is below threshold (default 0.40 —
+ * see DEFAULT_RETRIEVAL_THRESHOLD), retrieve() returns chunks: [] — an
+ * explicit "I don't have that" signal the agent can branch on, so it
+ * avoids grounding on weak hits.
  */
 
 import { readFileSync, appendFileSync, mkdirSync } from "node:fs";
@@ -24,7 +25,16 @@ import { randomUUID } from "node:crypto";
 const VOYAGE_ENDPOINT = "https://ai.mongodb.com/v1/embeddings";
 const VOYAGE_MODEL = "voyage-4-lite";
 const DEFAULT_K = 5;
-const DEFAULT_THRESHOLD = 0.65;
+
+/**
+ * Default cosine-similarity gate for retrieve(). Calibrated from the 6-query
+ * smoke test against this corpus: voyage-4-lite scores on-topic queries in
+ * the 0.33–0.65 band and noise at ~0.20, so 0.40 sits ~2× the noise floor
+ * and passes every on-topic smoke query while filtering the off-topic
+ * control. Exported so evals and the agent loop can reference the exact
+ * tuned value instead of duplicating the literal.
+ */
+export const DEFAULT_RETRIEVAL_THRESHOLD = 0.40;
 
 // ── types ──────────────────────────────────────────────────────────────
 
@@ -205,7 +215,7 @@ export async function retrieve(
 ): Promise<RetrieveResult> {
   const start = Date.now();
   const k = opts.k ?? DEFAULT_K;
-  const threshold = opts.threshold ?? DEFAULT_THRESHOLD;
+  const threshold = opts.threshold ?? DEFAULT_RETRIEVAL_THRESHOLD;
   const request_id = opts.request_id ?? randomUUID();
 
   const { vector: qVec, tokens: query_tokens, latency_ms: query_embedding_ms } =
