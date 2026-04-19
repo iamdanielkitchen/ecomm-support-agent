@@ -160,7 +160,7 @@ artifact, not intermediate state.
 ### 4.3 `scripts/embed-corpus.ts` (next stage)
 
 - Reads `chunks.json`, embeds each chunk's `text` via
-  `voyage-3` (or `voyage-3-lite` — decide after first measurement).
+  `voyage-4-lite` (Voyage's current small general-purpose embedding model).
 - Writes `data/corpus/embeddings.json`: array of `{chunk_id, vector}`.
 - Voyage key pulled from `VOYAGE_API_KEY`.
 
