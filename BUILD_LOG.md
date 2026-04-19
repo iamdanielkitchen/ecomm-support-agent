@@ -99,3 +99,82 @@ set with `pass_criteria` using the rubric vocabulary (`correct_tool_called`,
 **Blockers**: Still the same one, not resolved — Node / pnpm not installed on
 this machine, winget install denied as out-of-scope. I'm writing + committing;
 compilation and eval execution are morning tasks. No new blockers.
+
+## 2026-04-18 — STOPPED
+
+All of Sections 1, 3, 4, 5, 7 from CLAUDE.md are written and committed. Seven
+clean commits on `main`:
+
+```
+1fd3b3b test(eval): 18-case golden set + replay harness + rubric doc
+eb3eb0b chore(log): 45-min status append through Section 7a
+fa873e2 feat(debug): per-session trace viewer at /debug?session={id}
+08028c7 feat(ui): functional streaming chat UI with collapsible tool trace
+85404fd feat(agent): wire streaming tool_use loop + /api/chat + /api/session/[id]
+eeef1be feat(agent): system prompt, 4 tool schemas, store fixture, session + logger
+0b36538 chore(scaffold): initialize Next.js + TypeScript project layout
+```
+
+### Why stopping now
+Not time-triggered (nowhere near the 7h cap). The work scoped for tonight is
+written; the next steps (compile, run the dev server, run the eval harness,
+iterate on failures) all require Node, which I couldn't install on this box.
+Rather than keep layering unverified code on an un-runnable codebase, I'm
+handing it off. Every file has been hand-walked for types before commit, but I
+expect small fixups on first compile — that is exactly the work that benefits
+from you being in the loop.
+
+### State of the codebase
+- `package.json` pinned to Next 14.2.15, React 18.3.1, `@anthropic-ai/sdk`
+  ^0.30.1, `tsx` ^4 for the eval runner. Node 20+ required.
+- Strict TypeScript, `noUncheckedIndexedAccess` on. ESM throughout (`"type":
+  "module"`). Path alias `@/*` → project root.
+- No lockfile — `pnpm install` will generate one on first run.
+- `.env.local` not created (per "do not modify .env.local"). You'll need to
+  `cp .env.example .env.local` and add your key before `pnpm dev`.
+
+### What I should tackle first in the morning, in order
+
+1. **Install Node 20 + pnpm, then `pnpm install && pnpm typecheck && pnpm
+   build`.** The typecheck is the single highest-value thing to run — it'll
+   surface any Anthropic SDK type drift I couldn't see. Likely suspects:
+   - `Anthropic.ToolUseBlock` vs `Anthropic.Messages.ToolUseBlock` depending
+     on SDK version.
+   - `Anthropic.ToolResultBlockParam` shape (newer SDKs may nest it).
+   - `stream.on("text", ...)` signature — second arg is `textSnapshot` which
+     I'm ignoring; should be fine.
+2. **Resolve the model ID ambiguity.** `lib/anthropic.ts` has a `TODO: decide
+   AM` on the MODEL_ID constant. CLAUDE.md is internally inconsistent — it
+   says "Sonnet 4.6" in prose and `claude-sonnet-4-5` in the parenthetical.
+   I defaulted to the literal string. One-line flip either way.
+3. **Smoke test end-to-end once it compiles.** `pnpm dev`, load `/`, send one
+   clean happy-path turn ("status of FG-100001 maya.ortiz@example.com"), watch
+   the tool pill render, open `/debug?session={id}` in another tab.
+4. **Run the eval harness.** `pnpm dev` in one terminal, `pnpm eval` in
+   another. Check `evals/failures.json`. Expect 2–4 failures on the first
+   run — the criteria for case 6 ("wrong format") and case 8 ("missing
+   info") are the most brittle since they depend on the model asking the
+   right follow-up rather than guessing.
+5. **Only after steps 1–4 are green**: Vercel deploy, README polish, demo
+   video. Those are what the overnight run was *not* authorized to do.
+
+### What I deliberately did *not* write (cut list deferred)
+
+- Per CLAUDE.md's cut list, `initiate_return` is fully implemented rather than
+  stubbed. The code is short enough that cutting it would have saved maybe 10
+  minutes — not worth the loss of surface area.
+- No screenshots, no demo video, no Vercel deploy — out of scope for tonight.
+- No LLM-as-judge for `tone_appropriate` — rubric documents it, harness reserves
+  the slot, implementation is not there. Easy follow-up.
+
+### Blockers encountered
+
+1. **Node / pnpm not installed.** One attempt to `winget install
+   OpenJS.NodeJS.LTS --scope user` denied as out-of-scope. Per brief's
+   three-attempt rule, did not retry — documented and routed around.
+   Single unresolved blocker. Sum total impact: I couldn't execute any of the
+   code I wrote. Code + commits are the deliverable.
+
+No second or third blocker. The run is stopping on the "work scoped for
+tonight is written" condition, with the caveat above.
+
