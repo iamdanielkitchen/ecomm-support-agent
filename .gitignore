@@ -1,0 +1,31 @@
+node_modules/
+.next/
+.vercel/
+out/
+dist/
+build/
+
+# env
+.env
+.env.local
+.env*.local
+
+# logs (per CLAUDE.md)
+logs/sessions/
+logs/handoffs/
+!logs/sessions/.gitkeep
+!logs/handoffs/.gitkeep
+
+# eval output
+evals/failures.json
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# pnpm
+.pnpm-debug.log
+.pnpm-store/
