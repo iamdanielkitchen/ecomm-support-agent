@@ -13,19 +13,18 @@ describes the shape and intent; the JSON is the source the pipeline reads.
 
 ## 1. Topic taxonomy
 
-Patterned on Allbirds' macro-categories, adapted to home goods + kitchen.
 Eight top-level categories, 5–8 articles each, **50 articles total.**
 
-| # | Category | Slug | # articles | Allbirds analogue |
-|---|----------|------|-----------:|-------------------|
-| 1 | Orders & Shipping            | `orders-shipping`     | 7 | Orders + Shipping |
-| 2 | Returns & Exchanges          | `returns-exchanges`   | 7 | Returns & Exchanges |
-| 3 | Product Care                 | `product-care`        | 7 | Product Care |
-| 4 | Sizing & Specifications      | `sizing-specs`        | 6 | Sizing & Fit |
-| 5 | Materials & Sourcing         | `materials-sourcing`  | 6 | Materials & Sustainability |
-| 6 | Account & Order Lookup       | `account-lookup`      | 5 | Account & Orders |
-| 7 | Gifting & Promotions         | `gifting-promotions`  | 6 | Gift cards / promos |
-| 8 | Company & Contact            | `company-contact`     | 6 | About / Contact / Wholesale |
+| # | Category | Slug | # articles |
+|---|----------|------|-----------:|
+| 1 | Orders & Shipping            | `orders-shipping`     | 7 |
+| 2 | Returns & Exchanges          | `returns-exchanges`   | 7 |
+| 3 | Product Care                 | `product-care`        | 7 |
+| 4 | Sizing & Specifications      | `sizing-specs`        | 6 |
+| 5 | Materials & Sourcing         | `materials-sourcing`  | 6 |
+| 6 | Account & Order Lookup       | `account-lookup`      | 5 |
+| 7 | Gifting & Promotions         | `gifting-promotions`  | 6 |
+| 8 | Company & Contact            | `company-contact`     | 6 |
 
 See `data/corpus/taxonomy.json` for the full per-article list including
 `slug`, `title`, `angle` (one-line thesis the article answers), and
