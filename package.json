@@ -13,7 +13,8 @@
     "corpus:generate": "tsx --env-file=.env.local scripts/generate-corpus.ts",
     "corpus:chunk": "tsx scripts/chunk-corpus.ts",
     "corpus:embed": "tsx --env-file=.env.local scripts/embed-corpus.ts",
-    "retrieval:smoke": "tsx --env-file=.env.local scripts/retrieval-smoke.ts"
+    "retrieval:smoke": "tsx --env-file=.env.local scripts/retrieval-smoke.ts",
+    "agent:smoke": "tsx --env-file=.env.local scripts/agent-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",

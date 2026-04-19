@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import {
   findCatalogItem,
   findOrder,
@@ -8,6 +9,7 @@ import {
   type Order,
   type Return,
 } from "./store";
+import { retrieve, type Chunk as CorpusChunk } from "./retrieval";
 
 // --- Anthropic tool schemas -------------------------------------------------
 // Sent to the model on every turn. Keep descriptions short: the system prompt
@@ -76,6 +78,22 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
         },
       },
       required: ["order_number", "item_sku", "reason"],
+    },
+  },
+  {
+    name: "search_help_center",
+    description:
+      "Search the Fieldstone help-center corpus for long-tail product, care, materials, sizing, sustainability, or company-info questions that do not have a dedicated tool. Returns up to 5 relevant article chunks joined as Markdown, plus the chunk_id and cosine score for each. Do NOT use this tool for order status, return eligibility, or return creation — those have dedicated tools. If the retrieved content does not actually answer the question, say so plainly; do not fabricate policy from the snippets.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "The customer's question, rephrased as a concise search query if needed. Full-sentence queries retrieve more reliably than fragments.",
+        },
+      },
+      required: ["query"],
     },
   },
   {
@@ -150,6 +168,11 @@ export async function runTool(
         return {
           ok: true,
           value: initiateReturn(input as InitiateReturnInput, ctx),
+        };
+      case "search_help_center":
+        return {
+          ok: true,
+          value: await searchHelpCenter(input as SearchInput, ctx),
         };
       case "escalate_to_human":
         return {
@@ -372,10 +395,98 @@ function escalateToHuman(
   };
 }
 
+// --- search_help_center ---------------------------------------------------
+
+type SearchInput = { query: string };
+
+type SearchChunkRef = {
+  chunk_id: string;
+  score: number;
+  title: string;
+  section_heading: string | null;
+};
+
+type SearchResult = {
+  // Markdown the model reads to answer the customer. For below-threshold
+  // results, a sentinel the model recognizes.
+  content: string;
+  // Structured trace of what was retrieved. Above-threshold returns carry
+  // the full chunk list; below-threshold returns an empty array.
+  chunks: SearchChunkRef[];
+  request_id: string;
+  above_threshold: boolean;
+};
+
+const NO_CONTENT_SENTINEL =
+  "NO_RELEVANT_CONTENT_FOUND — do not fabricate policy; say you don't have that information and offer to escalate.";
+
+function joinChunksAsMarkdown(chunks: CorpusChunk[]): string {
+  // Each chunk.text already carries a "# Title\n\n## Heading\n\n" prefix
+  // from chunk-corpus.ts. We rebuild the header locally so every chunk
+  // reads as a level-2 section under the tool result, not a fresh H1.
+  return chunks
+    .map((c) => {
+      const headerParts = [c.title];
+      if (c.section_heading) headerParts.push(c.section_heading);
+      const header = `## ${headerParts.join(" — ")}`;
+      const prefix = c.section_heading
+        ? `# ${c.title}\n\n## ${c.section_heading}\n\n`
+        : `# ${c.title}\n\n`;
+      const body = c.text.startsWith(prefix)
+        ? c.text.slice(prefix.length)
+        : c.text;
+      return `${header}\n${body}`;
+    })
+    .join("\n---\n");
+}
+
+async function searchHelpCenter(
+  input: SearchInput,
+  ctx: ToolContext
+): Promise<SearchResult> {
+  if (typeof input.query !== "string" || !input.query.trim()) {
+    throw new Error("search_help_center: query must be a non-empty string");
+  }
+
+  // Correlate the retrieve() log line with this session's trace. The agent
+  // loop could pass tool_use_id through ToolContext later; for now a fresh
+  // UUID stamped here is enough for postmortem correlation.
+  const request_id = `${ctx.session_id}:${randomUUID().slice(0, 8)}`;
+
+  const { chunks, scores } = await retrieve(input.query.trim(), {
+    k: 5,
+    request_id,
+  });
+
+  if (chunks.length === 0) {
+    return {
+      content: NO_CONTENT_SENTINEL,
+      chunks: [],
+      request_id,
+      above_threshold: false,
+    };
+  }
+
+  const refs: SearchChunkRef[] = chunks.map((c, i) => ({
+    chunk_id: c.chunk_id,
+    score: scores[i] ?? 0,
+    title: c.title,
+    section_heading: c.section_heading,
+  }));
+
+  return {
+    content: joinChunksAsMarkdown(chunks),
+    chunks: refs,
+    request_id,
+    above_threshold: true,
+  };
+}
+
 // Expose for tests / eval harness.
 export const __internal = {
   lookupOrder,
   checkReturnEligibility,
   initiateReturn,
   escalateToHuman,
+  searchHelpCenter,
 };
