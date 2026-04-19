@@ -1,0 +1,168 @@
+{
+  "customers": [
+    { "email": "maya.ortiz@example.com",    "name": "Maya Ortiz" },
+    { "email": "devin.park@example.com",    "name": "Devin Park" },
+    { "email": "priya.kapoor@example.com",  "name": "Priya Kapoor" },
+    { "email": "jonas.weber@example.com",   "name": "Jonas Weber" },
+    { "email": "alex.rivera@example.com",   "name": "Alex Rivera" }
+  ],
+  "catalog": [
+    { "sku": "FG-KIT-001", "name": "Cast Iron Skillet, 10\"",      "price":  49.00, "final_sale": false },
+    { "sku": "FG-KIT-002", "name": "Walnut Cutting Board",          "price":  38.00, "final_sale": false },
+    { "sku": "FG-KIT-003", "name": "Ceramic Mixing Bowl Set (3)",   "price":  62.00, "final_sale": false },
+    { "sku": "FG-HOM-001", "name": "Linen Throw Blanket",           "price":  84.00, "final_sale": false },
+    { "sku": "FG-HOM-002", "name": "Wool Area Rug, 5x7",            "price": 219.00, "final_sale": false },
+    { "sku": "FG-KIT-004", "name": "Espresso Cups, Set of 4",       "price":  28.00, "final_sale": false },
+    { "sku": "FG-SAL-001", "name": "Holiday Candle (final sale)",   "price":  18.00, "final_sale": true  },
+    { "sku": "FG-SAL-002", "name": "Seasonal Tea Towels, Set of 2", "price":  22.00, "final_sale": true  }
+  ],
+  "orders": [
+    {
+      "order_number": "FG-100001",
+      "customer_email": "maya.ortiz@example.com",
+      "placed_at": "2026-04-05",
+      "delivered_at": "2026-04-09",
+      "status": "delivered",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-KIT-002", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 38.00
+    },
+    {
+      "order_number": "FG-100002",
+      "customer_email": "devin.park@example.com",
+      "placed_at": "2026-04-02",
+      "delivered_at": "2026-04-06",
+      "status": "delivered",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-KIT-001", "quantity": 1, "opened": true, "returned": false }
+      ],
+      "total": 49.00
+    },
+    {
+      "order_number": "FG-100003",
+      "customer_email": "priya.kapoor@example.com",
+      "placed_at": "2026-02-20",
+      "delivered_at": "2026-02-26",
+      "status": "delivered",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-HOM-002", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 219.00
+    },
+    {
+      "order_number": "FG-100004",
+      "customer_email": "jonas.weber@example.com",
+      "placed_at": "2026-04-01",
+      "delivered_at": "2026-04-05",
+      "status": "delivered",
+      "shipping_method": "expedited",
+      "items": [
+        { "sku": "FG-SAL-001", "quantity": 1, "opened": false, "returned": false },
+        { "sku": "FG-KIT-004", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 46.00
+    },
+    {
+      "order_number": "FG-100005",
+      "customer_email": "alex.rivera@example.com",
+      "placed_at": "2026-03-28",
+      "delivered_at": "2026-04-02",
+      "status": "delivered",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-SAL-001", "quantity": 1, "opened": false, "returned": false },
+        { "sku": "FG-SAL-002", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 40.00
+    },
+    {
+      "order_number": "FG-100006",
+      "customer_email": "maya.ortiz@example.com",
+      "placed_at": "2026-04-14",
+      "delivered_at": null,
+      "status": "in_transit",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-HOM-001", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 84.00
+    },
+    {
+      "order_number": "FG-100007",
+      "customer_email": "devin.park@example.com",
+      "placed_at": "2026-04-08",
+      "delivered_at": null,
+      "status": "lost_in_transit",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-KIT-003", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 62.00
+    },
+    {
+      "order_number": "FG-100008",
+      "customer_email": "priya.kapoor@example.com",
+      "placed_at": "2026-03-30",
+      "delivered_at": "2026-04-03",
+      "status": "delivered",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-KIT-001", "quantity": 1, "opened": true, "returned": true }
+      ],
+      "total": 49.00
+    },
+    {
+      "order_number": "FG-100009",
+      "customer_email": "jonas.weber@example.com",
+      "placed_at": "2026-04-04",
+      "delivered_at": "2026-04-08",
+      "status": "delivered",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-KIT-004", "quantity": 4, "opened": false, "returned": false }
+      ],
+      "total": 112.00
+    },
+    {
+      "order_number": "FG-100010",
+      "customer_email": "alex.rivera@example.com",
+      "placed_at": "2026-04-07",
+      "delivered_at": null,
+      "status": "refused_at_delivery",
+      "shipping_method": "expedited",
+      "items": [
+        { "sku": "FG-HOM-002", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 219.00
+    },
+    {
+      "order_number": "FG-100011",
+      "customer_email": "maya.ortiz@example.com",
+      "placed_at": "2026-04-18",
+      "delivered_at": null,
+      "status": "placed",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-KIT-002", "quantity": 2, "opened": false, "returned": false }
+      ],
+      "total": 76.00
+    },
+    {
+      "order_number": "FG-100012",
+      "customer_email": "devin.park@example.com",
+      "placed_at": "2026-04-06",
+      "delivered_at": "2026-04-10",
+      "status": "delivered",
+      "shipping_method": "standard",
+      "items": [
+        { "sku": "FG-HOM-001", "quantity": 1, "opened": false, "returned": false }
+      ],
+      "total": 84.00
+    }
+  ],
+  "returns": []
+}
