@@ -63,3 +63,39 @@ to catch mistakes — will hand-walk imports and types as I write.
 
 Next: rename CLAUDE.md.txt → CLAUDE.md, `git init`, scaffold package.json +
 tsconfig + next.config + the directory tree, first commit.
+
+## 2026-04-18 — Status check (through Section 7a)
+
+**Finished since start**: Scaffold (Next 14 App Router, strict TS, `.gitignore`,
+`README.md`, CI-less layout). System prompt lifted verbatim from CLAUDE.md.
+Four tool schemas + implementations in `lib/tools.ts` with a clean dispatcher
+and injectable `now()` for the eval runner. Fake store hand-authored with all
+12 enumerated scenarios anchored to today (2026-04-18) so the 30-day window
+math hits the intended boundaries. Session state map with a 30-min TTL sweeper
+guarded against hot-reload double-start. JSONL turn logger. Full streaming
+agent loop with a 6-hop guardrail, emitting NDJSON events for text deltas,
+tool-use starts/results, escalations, end-of-turn, and errors. Chat UI with
+inline tool pills and an escalation banner that disables input. Debug view at
+`/debug?session={id}` with summary strip, turn timeline, handoff payload card,
+and 2s auto-refresh.
+
+**Working on next**: Section 7b is already done (bundled with 3c). Next is the
+18-case golden set + `evals/run.ts` replay harness. I'll generate the golden
+set with `pass_criteria` using the rubric vocabulary (`correct_tool_called`,
+`escalation_triggered`, etc.) and build a harness that hits the local
+`/api/chat` endpoint, parses the NDJSON stream, and scores each case.
+
+**TODOs left for the morning**:
+- **Model ID**: `lib/anthropic.ts` currently uses `claude-sonnet-4-5` (literal
+  from CLAUDE.md); CLAUDE.md prose says "Sonnet 4.6". One-line flip.
+- **`pnpm install` + `pnpm build`**: I never ran either. The code typechecks
+  in my head but nothing on this box can compile it. Run `pnpm install && pnpm
+  build` as the first AM step; expect minor type fixes around Anthropic SDK
+  imports (`ToolUseBlock` vs `Messages.ToolUseBlock`, etc.).
+- **LLM-as-judge tone scoring**: the harness will score the structural
+  criteria cleanly; I'll stub the `tone_appropriate` judge but leave it
+  non-blocking since we can't actually call Claude from this box.
+
+**Blockers**: Still the same one, not resolved — Node / pnpm not installed on
+this machine, winget install denied as out-of-scope. I'm writing + committing;
+compilation and eval execution are morning tasks. No new blockers.
