@@ -25,6 +25,21 @@ type ToolInvocation = {
   timestamp: number;
 };
 
+type HandoffPayload = {
+  handoff_id: string;
+  session_id: string;
+  reason_code: string;
+  summary: string;
+  priority: "standard" | "high";
+  created_at: string;
+  transcript: unknown;
+};
+
+// The route returns the parsed handoff JSON when present, swaps to a
+// shape-compatible error stub if the file is unreadable, or null when no
+// handoff has fired yet.
+type HandoffField = HandoffPayload | { error: string } | null;
+
 type SessionResponse = {
   session_id: string;
   session_present: boolean;
@@ -32,7 +47,7 @@ type SessionResponse = {
   handoff_id: string | null;
   tool_trace: ToolInvocation[];
   turns: TurnLog[];
-  handoff: unknown;
+  handoff: HandoffField;
 };
 
 // Very rough cost model, purely for the interview-demo surface. CLAUDE.md
