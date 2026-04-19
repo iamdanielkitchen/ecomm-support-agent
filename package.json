@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "eval": "tsx evals/run.ts",
-    "corpus:generate": "tsx --env-file=.env.local scripts/generate-corpus.ts"
+    "corpus:generate": "tsx --env-file=.env.local scripts/generate-corpus.ts",
+    "corpus:chunk": "tsx scripts/chunk-corpus.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",
