@@ -1,14 +1,14 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { getClient, MAX_TOKENS, MODEL_ID } from "./anthropic.js";
-import { SYSTEM_PROMPT } from "./prompts.js";
+import { getClient, MAX_TOKENS, MODEL_ID } from "./anthropic";
+import { SYSTEM_PROMPT } from "./prompts";
 import {
   markEscalated,
   recordToolInvocation,
   touchSession,
   type SessionState,
-} from "./sessions.js";
-import { logTurn, snippet, type ToolLogEntry } from "./logger.js";
-import { runTool, TOOL_SCHEMAS, type ToolContext } from "./tools.js";
+} from "./sessions";
+import { logTurn, snippet, type ToolLogEntry } from "./logger";
+import { runTool, TOOL_SCHEMAS, type ToolContext } from "./tools";
 
 // Events streamed to the client over the chunked response body as newline-
 // delimited JSON. The UI reads them one line at a time.

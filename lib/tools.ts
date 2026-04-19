@@ -7,7 +7,7 @@ import {
   getStore,
   type Order,
   type Return,
-} from "./store.js";
+} from "./store";
 
 // --- Anthropic tool schemas -------------------------------------------------
 // Sent to the model on every turn. Keep descriptions short: the system prompt
