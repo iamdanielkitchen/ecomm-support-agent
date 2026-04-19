@@ -1,0 +1,361 @@
+{
+  "$schema_note": "Canonical topic list for the Fieldstone help-center corpus. Consumed by scripts/generate-corpus.ts. When you change this file, regenerate the affected articles (do not hand-edit raw/**/*.md). See docs/PATH_2_PLAN.md.",
+  "categories": [
+    {
+      "slug": "orders-shipping",
+      "title": "Orders & Shipping",
+      "description": "How customers track, receive, and troubleshoot orders in transit.",
+      "articles": [
+        {
+          "slug": "tracking-your-order",
+          "title": "Tracking your order",
+          "angle": "Where customers find the tracking link, what each status means, and what to do when tracking stalls for more than 48 hours.",
+          "related": ["shipping-methods-and-timelines", "delivery-issues-and-lost-packages", "order-confirmation-emails"]
+        },
+        {
+          "slug": "shipping-methods-and-timelines",
+          "title": "Shipping methods and delivery timelines",
+          "angle": "Compares standard (3–5 business days) and expedited (1–2 business days), what cutoffs apply for same-day handoff to the carrier, and why same-day delivery is not offered.",
+          "related": ["tracking-your-order", "when-will-my-order-ship", "international-shipping"]
+        },
+        {
+          "slug": "international-shipping",
+          "title": "International shipping",
+          "angle": "Current countries Fieldstone ships to, who pays duties and customs, and how return shipping works from outside the US.",
+          "related": ["shipping-methods-and-timelines", "return-shipping-fees"]
+        },
+        {
+          "slug": "when-will-my-order-ship",
+          "title": "When will my order ship",
+          "angle": "Typical handoff time from order placement to carrier pickup, how weekend/holiday ordering affects the window, and how to read the order status field.",
+          "related": ["tracking-your-order", "shipping-methods-and-timelines", "order-confirmation-emails"]
+        },
+        {
+          "slug": "shipping-to-po-boxes-and-apo",
+          "title": "Shipping to PO boxes, APO, and FPO addresses",
+          "angle": "Which address types Fieldstone supports, which ship methods work with each, and why oversize items (rugs) are carrier-restricted.",
+          "related": ["shipping-methods-and-timelines", "international-shipping"]
+        },
+        {
+          "slug": "delivery-issues-and-lost-packages",
+          "title": "Delivery issues and lost packages",
+          "angle": "Walks the customer through the 'marked delivered but not received' flow, when to wait 48 hours, and when support escalation is warranted.",
+          "related": ["tracking-your-order", "contacting-customer-support"]
+        },
+        {
+          "slug": "order-confirmation-emails",
+          "title": "Order confirmation emails",
+          "angle": "What the confirmation email contains, what to do if it never arrives, and how to retrieve a lost order number.",
+          "related": ["finding-your-order-number", "tracking-your-order"]
+        }
+      ]
+    },
+    {
+      "slug": "returns-exchanges",
+      "title": "Returns & Exchanges",
+      "description": "How the return window, fees, and final-sale rules work end-to-end.",
+      "articles": [
+        {
+          "slug": "how-to-start-a-return",
+          "title": "How to start a return",
+          "angle": "The step-by-step return flow from the customer's perspective — what they need (order number + email), what arrives (RMA + label), and what happens once the warehouse receives the item.",
+          "related": ["return-eligibility-and-window", "refund-timelines", "return-shipping-fees"]
+        },
+        {
+          "slug": "return-eligibility-and-window",
+          "title": "Return eligibility and the 30-day window",
+          "angle": "Exactly when the 30-day window starts (delivery date, not order date), what counts as 'unopened' vs 'opened,' and the three categories that are never eligible.",
+          "related": ["how-to-start-a-return", "final-sale-items", "damaged-or-defective-items"]
+        },
+        {
+          "slug": "refund-timelines",
+          "title": "Refund timelines",
+          "angle": "From warehouse receipt to funds posted: why the 5–7 business day figure is a band not a promise, and why the clock starts at warehouse receipt not label creation.",
+          "related": ["how-to-start-a-return", "return-eligibility-and-window"]
+        },
+        {
+          "slug": "final-sale-items",
+          "title": "Final sale items",
+          "angle": "Which items are final sale (and how they're marked in the catalog), why final sale exists, and what options remain if a final-sale item arrives damaged.",
+          "related": ["return-eligibility-and-window", "damaged-or-defective-items"]
+        },
+        {
+          "slug": "exchanges-vs-returns",
+          "title": "Exchanges vs. returns",
+          "angle": "Why Fieldstone processes exchanges as return-plus-new-order rather than an in-place swap, and how that affects refund timing.",
+          "related": ["how-to-start-a-return", "refund-timelines"]
+        },
+        {
+          "slug": "damaged-or-defective-items",
+          "title": "Damaged or defective items",
+          "angle": "How damage claims differ from standard returns: no restocking fee, no 30-day limit in practice, and what photos help support resolve the claim faster.",
+          "related": ["final-sale-items", "how-to-start-a-return", "contacting-customer-support"]
+        },
+        {
+          "slug": "return-shipping-fees",
+          "title": "Return shipping fees",
+          "angle": "The $7.95 opened-item fee, why unopened returns are free, and the rule for orders with mixed eligibility.",
+          "related": ["how-to-start-a-return", "return-eligibility-and-window"]
+        }
+      ]
+    },
+    {
+      "slug": "product-care",
+      "title": "Product Care",
+      "description": "How to maintain each product line over years, not weeks.",
+      "articles": [
+        {
+          "slug": "cast-iron-seasoning-and-care",
+          "title": "Cast iron: seasoning and daily care",
+          "angle": "How the 10\" skillet arrives pre-seasoned, the first-cook ritual, what soap is (and isn't) OK, and how to recover from surface rust.",
+          "related": ["cast-iron-capacity-guide", "ceramic-cookware-and-dishwasher-use"]
+        },
+        {
+          "slug": "cutting-board-maintenance",
+          "title": "Cutting board maintenance",
+          "angle": "Daily cleaning, monthly mineral-oil treatment for the walnut board, and the two things (dishwasher, prolonged soaking) that crack hardwood.",
+          "related": ["oiled-wood-long-term-care", "cutting-board-dimensions"]
+        },
+        {
+          "slug": "linen-washing-instructions",
+          "title": "Washing and drying linen",
+          "angle": "First-wash softening, water temperature, why tumble-drying speeds up softening but shortens fiber life, and how to handle wrinkles without an iron.",
+          "related": ["wool-rug-cleaning", "about-our-linen"]
+        },
+        {
+          "slug": "wool-rug-cleaning",
+          "title": "Caring for wool rugs",
+          "angle": "Weekly care (vacuum without beater bar), spot treatment for common spills, and when to invest in professional cleaning for the 5×7.",
+          "related": ["linen-washing-instructions", "wool-sourcing-and-certifications"]
+        },
+        {
+          "slug": "ceramic-cookware-and-dishwasher-use",
+          "title": "Ceramic and dishwasher use",
+          "angle": "Which ceramic pieces are dishwasher-safe (mixing bowls yes, espresso cups yes, glazed serving pieces yes), and how to prevent thermal shock when moving from fridge to oven.",
+          "related": ["cast-iron-seasoning-and-care", "ceramic-manufacturing"]
+        },
+        {
+          "slug": "candle-safety-and-burn-tips",
+          "title": "Candle safety and burn tips",
+          "angle": "First-burn instructions to prevent tunneling, when to trim the wick, safe burn duration per session, and why the holiday candle is final sale.",
+          "related": ["final-sale-items"]
+        },
+        {
+          "slug": "oiled-wood-long-term-care",
+          "title": "Long-term care for oiled wood",
+          "angle": "Walnut and oak patina over five years: what's normal aging vs. damage, how to spot-repair scratches, and a two-minute monthly oil routine.",
+          "related": ["cutting-board-maintenance", "where-our-wood-comes-from"]
+        }
+      ]
+    },
+    {
+      "slug": "sizing-specs",
+      "title": "Sizing & Specifications",
+      "description": "Dimensions, capacities, and fit guides for the catalog.",
+      "articles": [
+        {
+          "slug": "rug-sizes-and-fit-guide",
+          "title": "Rug sizes and fit guide",
+          "angle": "How the 5×7 wool rug works in common room sizes (bedroom runner at the foot, small living room centered, dining under-table rules).",
+          "related": ["wool-rug-cleaning", "wool-sourcing-and-certifications"]
+        },
+        {
+          "slug": "cast-iron-capacity-guide",
+          "title": "Cast iron skillet capacity guide",
+          "angle": "What fits in the 10\" skillet by number of servings, oven compatibility, and typical weight expectations for a customer used to nonstick.",
+          "related": ["cast-iron-seasoning-and-care"]
+        },
+        {
+          "slug": "mixing-bowl-set-volumes",
+          "title": "Mixing bowl set volumes",
+          "angle": "Approximate volumes of the three-bowl ceramic set and typical use cases (whisking two eggs → large batch of dough).",
+          "related": ["ceramic-cookware-and-dishwasher-use"]
+        },
+        {
+          "slug": "throw-blanket-dimensions",
+          "title": "Linen throw blanket dimensions",
+          "angle": "Throw-size conventions, how the linen throw works over a queen-foot vs. draped over a sofa arm, and how it softens over wash cycles.",
+          "related": ["linen-washing-instructions", "about-our-linen"]
+        },
+        {
+          "slug": "espresso-cup-volume-guide",
+          "title": "Espresso cup volumes and fit",
+          "angle": "Cup volume vs. a standard single/double espresso pull, what fits under common home machines, and why the cups are demitasse-profile rather than latte cups.",
+          "related": ["ceramic-cookware-and-dishwasher-use"]
+        },
+        {
+          "slug": "cutting-board-dimensions",
+          "title": "Cutting board dimensions and workflow",
+          "angle": "Board footprint in a standard home kitchen, how it pairs with common knife sizes, and why it's a single slab not a glue-up.",
+          "related": ["cutting-board-maintenance", "where-our-wood-comes-from"]
+        }
+      ]
+    },
+    {
+      "slug": "materials-sourcing",
+      "title": "Materials & Sourcing",
+      "description": "Where the catalog's raw materials come from and why that matters.",
+      "articles": [
+        {
+          "slug": "where-our-wood-comes-from",
+          "title": "Where our wood comes from",
+          "angle": "Sourcing region, FSC or equivalent certifications for the walnut, how a finished board differs from raw lumber, and what the price reflects.",
+          "related": ["cutting-board-maintenance", "oiled-wood-long-term-care"]
+        },
+        {
+          "slug": "about-our-linen",
+          "title": "About our linen",
+          "angle": "Flax-to-fiber supply chain, European mill partner, and why European linen is the industry benchmark for long-wear goods.",
+          "related": ["linen-washing-instructions", "throw-blanket-dimensions"]
+        },
+        {
+          "slug": "wool-sourcing-and-certifications",
+          "title": "Wool sourcing and certifications",
+          "angle": "Where the rug wool comes from, what 'RWS' or responsible-wool certifications cover, and why certified wool costs more up front.",
+          "related": ["wool-rug-cleaning", "rug-sizes-and-fit-guide"]
+        },
+        {
+          "slug": "cast-iron-craftsmanship",
+          "title": "How our cast iron is made",
+          "angle": "Sand-cast vs. machined iron, why the skillet is heavier than mass-market, and how pre-seasoning is applied at the foundry.",
+          "related": ["cast-iron-seasoning-and-care", "cast-iron-capacity-guide"]
+        },
+        {
+          "slug": "ceramic-manufacturing",
+          "title": "How our ceramics are made",
+          "angle": "Clay body, kiln temperature, and the quality check that catches micro-cracks before shipping.",
+          "related": ["ceramic-cookware-and-dishwasher-use", "mixing-bowl-set-volumes"]
+        },
+        {
+          "slug": "sustainability-and-packaging",
+          "title": "Sustainability and packaging",
+          "angle": "Shipping-box recycled content, why Fieldstone does not include filler paper in the mailer, and the carbon trade-offs of expedited shipping.",
+          "related": ["shipping-methods-and-timelines", "wool-sourcing-and-certifications"]
+        }
+      ]
+    },
+    {
+      "slug": "account-lookup",
+      "title": "Account & Order Lookup",
+      "description": "How Fieldstone handles identity without a full account system.",
+      "articles": [
+        {
+          "slug": "how-order-numbers-work",
+          "title": "How Fieldstone order numbers work",
+          "angle": "The FG-NNNNNN format, where to find it, and why it's the single identifier support needs.",
+          "related": ["finding-your-order-number", "order-confirmation-emails"]
+        },
+        {
+          "slug": "updating-email-on-an-order",
+          "title": "Updating the email on an order",
+          "angle": "Why the order email is fixed at checkout, what support can and cannot change, and the escalation path for a mistyped email.",
+          "related": ["how-order-numbers-work", "contacting-customer-support"]
+        },
+        {
+          "slug": "order-history-without-an-account",
+          "title": "Order history without an account",
+          "angle": "Fieldstone uses email + order number instead of accounts. How to retrieve past orders via the confirmation emails, and what's coming.",
+          "related": ["finding-your-order-number", "order-confirmation-emails"]
+        },
+        {
+          "slug": "duplicate-orders-and-billing-questions",
+          "title": "Duplicate orders and billing questions",
+          "angle": "How to recognize a duplicate charge vs. a pending authorization, and why billing questions always escalate to a human.",
+          "related": ["contacting-customer-support"]
+        },
+        {
+          "slug": "finding-your-order-number",
+          "title": "Finding your order number",
+          "angle": "Three places the number appears (confirmation email subject, email body, shipping email), and what to do if all three are missing.",
+          "related": ["order-confirmation-emails", "how-order-numbers-work"]
+        }
+      ]
+    },
+    {
+      "slug": "gifting-promotions",
+      "title": "Gifting & Promotions",
+      "description": "Gift cards, promo codes, and seasonal promotions. Note: these topics route to human support in the agent.",
+      "articles": [
+        {
+          "slug": "gift-cards-purchase-and-redemption",
+          "title": "Gift cards: purchase and redemption",
+          "angle": "Digital vs. physical gift cards, delivery timing, and how a gift card interacts with promo codes.",
+          "related": ["promo-codes-and-discounts", "gift-receipts"]
+        },
+        {
+          "slug": "gift-messages-and-packaging",
+          "title": "Gift messages and packaging",
+          "angle": "How to add a gift message at checkout, what the packaging looks like, and the no-invoice-in-package rule for gift orders.",
+          "related": ["gift-receipts", "gift-cards-purchase-and-redemption"]
+        },
+        {
+          "slug": "promo-codes-and-discounts",
+          "title": "Promo codes and discounts",
+          "angle": "Why only one code stacks per order, common reasons a code is invalid, and how promo pricing interacts with the 30-day return policy.",
+          "related": ["gift-cards-purchase-and-redemption", "holiday-returns-extended-window"]
+        },
+        {
+          "slug": "holiday-returns-extended-window",
+          "title": "Holiday returns: extended window",
+          "angle": "If Fieldstone runs an extended return window during the holidays (and when the standard 30-day window otherwise applies).",
+          "related": ["return-eligibility-and-window", "gift-receipts"]
+        },
+        {
+          "slug": "gift-receipts",
+          "title": "Gift receipts and gift returns",
+          "angle": "How a recipient starts a return without the original purchaser's email, and what the refund routes back to.",
+          "related": ["gift-messages-and-packaging", "how-to-start-a-return"]
+        },
+        {
+          "slug": "corporate-gifting-and-wholesale",
+          "title": "Corporate gifting and wholesale inquiries",
+          "angle": "Minimum order quantities, custom messaging at scale, and where to route a 50+ unit gift inquiry.",
+          "related": ["wholesale-and-trade-inquiries", "contacting-customer-support"]
+        }
+      ]
+    },
+    {
+      "slug": "company-contact",
+      "title": "Company & Contact",
+      "description": "About Fieldstone and how to reach a human.",
+      "articles": [
+        {
+          "slug": "about-fieldstone-goods",
+          "title": "About Fieldstone Goods",
+          "angle": "Short company narrative: where the brand started, what 'slow-build' means in the catalog, and what Fieldstone does not do (no fast-fashion drops, no fulfillment centers outside the US).",
+          "related": ["sustainability-and-packaging", "wholesale-and-trade-inquiries"]
+        },
+        {
+          "slug": "contacting-customer-support",
+          "title": "Contacting customer support",
+          "angle": "The support channels (chat first, email as fallback), what information speeds up a reply, and expected response windows by priority.",
+          "related": ["delivery-issues-and-lost-packages", "duplicate-orders-and-billing-questions"]
+        },
+        {
+          "slug": "wholesale-and-trade-inquiries",
+          "title": "Wholesale and trade inquiries",
+          "angle": "Who Fieldstone partners with (independent retailers, interior design trade), minimum order expectations, and how to request a line sheet.",
+          "related": ["corporate-gifting-and-wholesale", "about-fieldstone-goods"]
+        },
+        {
+          "slug": "press-and-media-requests",
+          "title": "Press and media requests",
+          "angle": "Where to route an interview request, review sample process, and image licensing for editorial.",
+          "related": ["about-fieldstone-goods", "contacting-customer-support"]
+        },
+        {
+          "slug": "privacy-and-data",
+          "title": "Privacy and data practices",
+          "angle": "Plain-language summary of what data Fieldstone collects, how long it's kept, and the CCPA/GDPR-style deletion request path.",
+          "related": ["contacting-customer-support"]
+        },
+        {
+          "slug": "accessibility-statement",
+          "title": "Accessibility statement",
+          "angle": "What Fieldstone's site meets (WCAG 2.1 AA target), how to report a blocker, and alternative ordering paths for users of assistive tech.",
+          "related": ["contacting-customer-support"]
+        }
+      ]
+    }
+  ]
+}

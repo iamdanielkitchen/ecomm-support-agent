@@ -9,13 +9,15 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "eval": "tsx evals/run.ts"
+    "eval": "tsx evals/run.ts",
+    "corpus:generate": "tsx --env-file=.env.local scripts/generate-corpus.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",
     "next": "14.2.15",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "voyageai": "^0.2.1"
   },
   "devDependencies": {
     "@types/node": "20.14.10",
