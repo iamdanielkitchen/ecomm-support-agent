@@ -29,3 +29,9 @@ Thumbs.db
 # pnpm
 .pnpm-debug.log
 .pnpm-store/
+
+# vercel (defensive: also ignore if present as a file)
+.vercel
+
+# typescript incremental build info
+tsconfig.tsbuildinfo
