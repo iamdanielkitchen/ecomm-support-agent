@@ -463,7 +463,7 @@ function previewOutput(output: unknown): string {
   const shallow: Record<string, unknown> = { ...(output as Record<string, unknown>) };
   if (typeof shallow["content"] === "string") {
     const s = shallow["content"] as string;
-    if (s.length > 1500) shallow["content"] = s.slice(0, 1500) + "…[truncated]";
+    if (s.length > 4000) shallow["content"] = s.slice(0, 4000) + "…[truncated]";
   }
   return JSON.stringify(shallow);
 }
