@@ -30,6 +30,15 @@ const DEFAULT_QUERIES = [
 const cliQueries = process.argv.slice(2).filter((a) => a !== "--");
 const QUERIES = cliQueries.length > 0 ? cliQueries : DEFAULT_QUERIES;
 
+type TurnConfidence = {
+  self_score: number | null;
+  self_reason: string | null;
+  retrieval_score: number | null;
+  retrieval_top1: number | null;
+  retrieval_gap: number | null;
+  used_retrieval: boolean;
+};
+
 type StreamEvent =
   | { type: "text_delta"; text: string }
   | { type: "tool_use_started"; name: string; input: unknown; id: string }
@@ -43,6 +52,7 @@ type StreamEvent =
     }
   | { type: "escalated"; handoff_id: string }
   | { type: "end_turn"; stop_reason: string }
+  | { type: "turn_confidence"; turn_index: number; confidence: TurnConfidence }
   | { type: "error"; message: string };
 
 async function runQuery(session_id: string, message: string): Promise<StreamEvent[]> {
@@ -116,6 +126,23 @@ function printTrace(query: string, events: StreamEvent[]): void {
       case "escalated":
         process.stdout.write(`  ESCALATED ${e.handoff_id}\n`);
         break;
+      case "turn_confidence": {
+        const c = e.confidence;
+        const self = c.self_score === null ? "null" : c.self_score.toFixed(2);
+        const retr =
+          c.retrieval_score === null ? "null" : c.retrieval_score.toFixed(2);
+        const top1 =
+          c.retrieval_top1 === null ? "null" : c.retrieval_top1.toFixed(3);
+        const gap =
+          c.retrieval_gap === null ? "null" : c.retrieval_gap.toFixed(3);
+        process.stdout.write(
+          `  confidence: self=${self} retrieval=${retr} (top1=${top1}, gap=${gap}, used=${c.used_retrieval})\n`,
+        );
+        if (c.self_reason) {
+          process.stdout.write(`      self_reason: ${c.self_reason}\n`);
+        }
+        break;
+      }
       case "error":
         process.stdout.write(`  ERROR: ${e.message}\n`);
         break;

@@ -1,4 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import type { TurnConfidence } from "./confidence";
 
 export type ToolInvocation = {
   turn_index: number;
@@ -9,12 +10,19 @@ export type ToolInvocation = {
   timestamp: number;
 };
 
+export type TurnConfidenceRecord = {
+  turn_index: number;
+  timestamp: number;
+  confidence: TurnConfidence;
+};
+
 export type SessionState = {
   session_id: string;
   created_at: number;
   last_activity: number;
   messages: Anthropic.MessageParam[];
   tool_trace: ToolInvocation[];
+  confidence_per_turn: TurnConfidenceRecord[];
   escalated: boolean;
   handoff_id?: string;
 };
@@ -56,6 +64,7 @@ export function getOrCreateSession(session_id: string): SessionState {
       last_activity: now,
       messages: [],
       tool_trace: [],
+      confidence_per_turn: [],
       escalated: false,
     };
     sessions.set(session_id, s);
@@ -76,6 +85,13 @@ export function recordToolInvocation(
   inv: ToolInvocation
 ): void {
   s.tool_trace.push(inv);
+}
+
+export function recordConfidence(
+  s: SessionState,
+  record: TurnConfidenceRecord
+): void {
+  s.confidence_per_turn.push(record);
 }
 
 export function markEscalated(s: SessionState, handoff_id: string): void {

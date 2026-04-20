@@ -1,14 +1,18 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { getClient, MAX_TOKENS, MODEL_ID } from "./anthropic";
 import { SYSTEM_PROMPT } from "./prompts";
 import {
   markEscalated,
+  recordConfidence,
   recordToolInvocation,
   touchSession,
   type SessionState,
 } from "./sessions";
 import { logTurn, snippet, type ToolLogEntry } from "./logger";
 import { runTool, TOOL_SCHEMAS, type ToolContext } from "./tools";
+import { computeTurnConfidence, type TurnConfidence } from "./confidence";
 
 // Events streamed to the client over the chunked response body as newline-
 // delimited JSON. The UI reads them one line at a time.
@@ -25,6 +29,7 @@ export type AgentEvent =
     }
   | { type: "escalated"; handoff_id: string }
   | { type: "end_turn"; stop_reason: string }
+  | { type: "turn_confidence"; turn_index: number; confidence: TurnConfidence }
   | { type: "error"; message: string };
 
 // Hard guardrail. If the model's thrashing in a tool_use loop we cut the
@@ -204,6 +209,55 @@ export function createAgentStream(
           tokens_out: tokensOut,
           stop_reason: stopReason,
         });
+
+        // Side-call confidence scorer. Runs inside the finally block so it
+        // lands before the stream closes and gets included in the client's
+        // event log. Adds ~1–2s of end-of-turn latency (Haiku call) that
+        // the user sees after the reply is already rendered — no visual
+        // regression, but measurable in traces. Any failure here is logged
+        // to stderr and the stream still closes cleanly.
+        try {
+          const thisTurnInvocations = session.tool_trace.filter(
+            (t) => t.turn_index === turnIndex,
+          );
+          const confidence = await computeTurnConfidence({
+            user_message: userMessage,
+            assistant_reply: assistantTextBuffer,
+            tool_invocations: thisTurnInvocations,
+          });
+          recordConfidence(session, {
+            turn_index: turnIndex,
+            timestamp: Date.now(),
+            confidence,
+          });
+          emit({ type: "turn_confidence", turn_index: turnIndex, confidence });
+
+          try {
+            const logDir = join(process.cwd(), "logs");
+            mkdirSync(logDir, { recursive: true });
+            appendFileSync(
+              join(logDir, "confidence.jsonl"),
+              JSON.stringify({
+                ts: new Date().toISOString(),
+                session_id: session.session_id,
+                turn_index: turnIndex,
+                user_snippet: snippet(userMessage),
+                reply_snippet: snippet(assistantTextBuffer),
+                confidence,
+              }) + "\n",
+              "utf-8",
+            );
+          } catch (logErr) {
+            process.stderr.write(
+              `[agent] confidence log write failed: ${logErr instanceof Error ? logErr.message : String(logErr)}\n`,
+            );
+          }
+        } catch (confErr) {
+          process.stderr.write(
+            `[agent] confidence scoring failed: ${confErr instanceof Error ? confErr.message : String(confErr)}\n`,
+          );
+        }
+
         touchSession(session);
         controller.close();
       }
