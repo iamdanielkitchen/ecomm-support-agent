@@ -1,18 +1,23 @@
 // Golden-set replay harness.
 //
-// Usage: assume a dev server is running locally (`pnpm dev`). Then:
-//   pnpm eval
+// Two modes:
+//   Path 1 (default):   structural pass/fail against data/golden-set.json
+//   Path 2 (--rag):     LLM-as-judge with Opus 4.7 against
+//                       data/golden-set-rag.json, two runs per case for
+//                       stability, writes evals/results/{ts}.json and
+//                       evals/results/{ts}-failures.md
 //
-// Override the target with FIELDSTONE_BASE_URL=https://… pnpm eval
-//
-// The harness does NOT spin up its own Next server — Next dev is slow to
-// boot and the runner should be interrupt-friendly. CLAUDE.md says
-// "replays each golden-set case against the real /api/chat endpoint", so
-// we hit HTTP, not the agent in-process.
+// Usage (assume dev server is running locally via `pnpm dev`):
+//   pnpm eval                              # Path 1 structural
+//   pnpm eval:rag                          # RAG set, LLM judge, 2 runs
+//   pnpm eval:rag -- --limit 3             # first 3 RAG cases only
+//   pnpm eval:rag -- --runs 1              # skip stability double-run
+//   FIELDSTONE_BASE_URL=https://... pnpm eval  # point at a remote deploy
 
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import Anthropic from "@anthropic-ai/sdk";
 
 const BASE_URL = process.env.FIELDSTONE_BASE_URL ?? "http://localhost:3000";
 
@@ -333,7 +338,443 @@ function colourize(pass: boolean): string {
   return pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m";
 }
 
+// --- Path 2 additions: RAG golden set + LLM-as-judge ----------------------
+
+type GoldenRagCase = {
+  id: string;
+  description: string;
+  turns: Array<{ role: string; content: string }>;
+  expectations: {
+    tool_sequence: string[];
+    escalation_expected: boolean;
+    grounding_required: boolean;
+    pass_criteria: string;
+  };
+};
+
+type JudgeDim = "pass" | "fail" | "n/a";
+
+type JudgeVerdict = {
+  tool_routing: Exclude<JudgeDim, "n/a">;
+  tool_routing_reason: string;
+  grounding: JudgeDim;
+  grounding_reason: string;
+  escalation: JudgeDim;
+  escalation_reason: string;
+  response_quality: Exclude<JudgeDim, "n/a">;
+  response_quality_reason: string;
+  overall_pass: boolean;
+  notes?: string;
+};
+
+type RagRunResult = {
+  run_index: number;
+  turns: TurnResult[];
+  judge_verdict: JudgeVerdict | null;
+  judge_tokens: { in: number; out: number };
+  judge_latency_ms: number;
+  judge_error?: string;
+};
+
+type RagCaseResult = {
+  case: GoldenRagCase;
+  runs: RagRunResult[];
+  stable: boolean;
+  divergence_note: string | null;
+};
+
+type RagArgs = {
+  limit: number | null;
+  runs: number;
+};
+
+// Opus 4.7 is the interview-surface judge: slower and pricier than Sonnet
+// but catches nuance on grounding and escalation the structural harness
+// misses. Judge cost is the gating concern — we pace runs and cap limits.
+const JUDGE_MODEL = "claude-opus-4-7";
+const JUDGE_MAX_TOKENS = 1200;
+// Public Opus rates at build time. These are used only for the cost
+// estimate line in the aggregate output; Anthropic billing is authoritative.
+const OPUS_IN_PRICE_PER_MTOK = 15;
+const OPUS_OUT_PRICE_PER_MTOK = 75;
+
+const JUDGE_SYSTEM = `You are evaluating a customer-support assistant's performance on a test case
+for Fieldstone Goods, an e-commerce store of home and kitchen goods.
+
+You receive the case (description, expectations, pass criteria) and the
+actual transcript (customer turns, agent tool trace, final reply). Return a
+single JSON object with these fields, nothing else, no code fences:
+
+{
+  "tool_routing":           "pass" | "fail",
+  "tool_routing_reason":    string (under 30 words),
+  "grounding":              "pass" | "fail" | "n/a",
+  "grounding_reason":       string (under 30 words),
+  "escalation":             "pass" | "fail" | "n/a",
+  "escalation_reason":      string (under 30 words),
+  "response_quality":       "pass" | "fail",
+  "response_quality_reason": string (under 30 words),
+  "overall_pass":           boolean,
+  "notes":                  string (optional, under 40 words)
+}
+
+Rubric:
+- tool_routing: the agent called the tools expected by tool_sequence. Extra
+  calls are OK if they did not distract from the answer. Missing a required
+  call is a fail.
+- grounding: if grounding_required is true, the reply's factual claims must
+  be supported by a tool output, a retrieved chunk, or the system policy
+  block (30-day window, $7.95 opened-item fee, 5–7 business-day refund,
+  standard 3–5 day / expedited 1–2 day shipping). Fabricated SKUs, prices,
+  timelines, or certifications are a fail. Use "n/a" only if the reply made
+  no factual claims (pure clarifying question or boundary-setting refusal).
+- escalation: if escalation_expected is true, escalate_to_human must have
+  been called with a reasonable reason_code. If false, escalate_to_human
+  must NOT have been called (verbal refusal is fine). "n/a" only if the
+  case is irrelevant to escalation (rare).
+- response_quality: the reply is specific, warm, in Fieldstone voice, and
+  moves the customer forward. Empty, evasive, over-apologetic, or
+  contradicting-itself replies fail.
+
+overall_pass = true iff every applicable dimension passes (ignoring "n/a").`;
+
+function previewOutput(output: unknown): string {
+  // Truncate large tool outputs so the judge prompt stays under a few
+  // thousand tokens per case. search_help_center's \`content\` field can
+  // balloon; trim it to the first ~1500 chars and keep metadata intact.
+  if (!output || typeof output !== "object") return JSON.stringify(output);
+  const shallow: Record<string, unknown> = { ...(output as Record<string, unknown>) };
+  if (typeof shallow["content"] === "string") {
+    const s = shallow["content"] as string;
+    if (s.length > 1500) shallow["content"] = s.slice(0, 1500) + "…[truncated]";
+  }
+  return JSON.stringify(shallow);
+}
+
+function buildJudgeUserPrompt(c: GoldenRagCase, turns: TurnResult[]): string {
+  const toolLines: string[] = [];
+  for (let i = 0; i < turns.length; i++) {
+    const t = turns[i]!;
+    toolLines.push(`  — user turn ${i + 1}: ${t.user}`);
+    for (const inv of t.tool_invocations) {
+      toolLines.push(`    TOOL ${inv.name}(${JSON.stringify(inv.input)})`);
+      toolLines.push(`      → output: ${previewOutput(inv.output)}`);
+    }
+  }
+  const lastReply = turns[turns.length - 1]?.assistant_text ?? "";
+
+  return `CASE
+id: ${c.id}
+description: ${c.description}
+expected tool_sequence: ${JSON.stringify(c.expectations.tool_sequence)}
+escalation_expected: ${c.expectations.escalation_expected}
+grounding_required: ${c.expectations.grounding_required}
+pass_criteria: ${c.expectations.pass_criteria}
+
+TRANSCRIPT
+${toolLines.join("\n")}
+
+FINAL ASSISTANT REPLY
+${lastReply}
+
+Evaluate per the rubric. Return JSON only.`;
+}
+
+function stripJsonFence(text: string): string {
+  const trimmed = text.trim();
+  const m = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/);
+  return m && m[1] !== undefined ? m[1].trim() : trimmed;
+}
+
+let _judgeClient: Anthropic | null = null;
+function getJudgeClient(): Anthropic {
+  if (_judgeClient) return _judgeClient;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set — judge cannot run");
+  }
+  _judgeClient = new Anthropic({ apiKey });
+  return _judgeClient;
+}
+
+async function judgeRun(
+  c: GoldenRagCase,
+  turns: TurnResult[],
+): Promise<{
+  verdict: JudgeVerdict | null;
+  tokens: { in: number; out: number };
+  latency_ms: number;
+  error?: string;
+}> {
+  const client = getJudgeClient();
+  const user = buildJudgeUserPrompt(c, turns);
+  const start = Date.now();
+  try {
+    const response = await client.messages.create({
+      model: JUDGE_MODEL,
+      max_tokens: JUDGE_MAX_TOKENS,
+      system: JUDGE_SYSTEM,
+      messages: [{ role: "user", content: user }],
+    });
+    const latency_ms = Date.now() - start;
+    let text = "";
+    for (const block of response.content) {
+      if (block.type === "text") text += block.text;
+    }
+    const verdict = JSON.parse(stripJsonFence(text)) as JudgeVerdict;
+    return {
+      verdict,
+      tokens: {
+        in: response.usage.input_tokens,
+        out: response.usage.output_tokens,
+      },
+      latency_ms,
+    };
+  } catch (err) {
+    return {
+      verdict: null,
+      tokens: { in: 0, out: 0 },
+      latency_ms: Date.now() - start,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+async function runRagCase(
+  c: GoldenRagCase,
+  runs: number,
+): Promise<RagCaseResult> {
+  const runResults: RagRunResult[] = [];
+  for (let r = 0; r < runs; r++) {
+    const session_id = randomUUID();
+    const turns: TurnResult[] = [];
+    for (const turn of c.turns) {
+      if (turn.role !== "user") continue;
+      const tr = await runTurn(session_id, turn.content);
+      turns.push(tr);
+      if (tr.errored) break;
+    }
+    const judged = await judgeRun(c, turns);
+    runResults.push({
+      run_index: r,
+      turns,
+      judge_verdict: judged.verdict,
+      judge_tokens: judged.tokens,
+      judge_latency_ms: judged.latency_ms,
+      judge_error: judged.error,
+    });
+  }
+  const overalls = runResults.map((r) => r.judge_verdict?.overall_pass ?? null);
+  const first = overalls[0];
+  const stable =
+    overalls.length <= 1 || overalls.every((v) => v === first);
+  const divergence_note = stable
+    ? null
+    : `overall_pass diverged across runs: [${overalls.join(", ")}]`;
+  return { case: c, runs: runResults, stable, divergence_note };
+}
+
+function parseRagArgs(argv: string[]): RagArgs {
+  const args: RagArgs = { limit: null, runs: 2 };
+  let i = 0;
+  while (i < argv.length) {
+    const a = argv[i++];
+    if (a === undefined) continue;
+    if (a === "--" || a === "--rag") continue;
+    if (a === "--limit") {
+      const v = argv[i++];
+      if (!v) throw new Error("--limit requires a number");
+      const n = Number(v);
+      if (!Number.isFinite(n) || n <= 0) {
+        throw new Error(`--limit must be positive, got "${v}"`);
+      }
+      args.limit = n;
+    } else if (a === "--runs") {
+      const v = argv[i++];
+      if (!v) throw new Error("--runs requires a number");
+      const n = Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        throw new Error(`--runs must be a positive integer, got "${v}"`);
+      }
+      args.runs = n;
+    } else if (a.startsWith("--")) {
+      throw new Error(`Unknown flag: ${a}`);
+    }
+  }
+  return args;
+}
+
+function emitRagResults(
+  cases: RagCaseResult[],
+  args: RagArgs,
+): { resultsPath: string; failuresPath: string | null; cost: number } {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const resultsDir = join(process.cwd(), "evals", "results");
+  mkdirSync(resultsDir, { recursive: true });
+
+  const allRuns = cases.flatMap((c) => c.runs);
+  const judgedRuns = allRuns.filter((r) => r.judge_verdict !== null);
+  const passedRuns = judgedRuns.filter((r) => r.judge_verdict!.overall_pass).length;
+  const totalIn = allRuns.reduce((s, r) => s + r.judge_tokens.in, 0);
+  const totalOut = allRuns.reduce((s, r) => s + r.judge_tokens.out, 0);
+  const cost =
+    (totalIn / 1_000_000) * OPUS_IN_PRICE_PER_MTOK +
+    (totalOut / 1_000_000) * OPUS_OUT_PRICE_PER_MTOK;
+
+  const jsonBody = {
+    timestamp: new Date().toISOString(),
+    judge_model: JUDGE_MODEL,
+    runs_per_case: args.runs,
+    cases: cases.map((c) => ({
+      id: c.case.id,
+      description: c.case.description,
+      expectations: c.case.expectations,
+      runs: c.runs.map((r) => ({
+        run_index: r.run_index,
+        judge_verdict: r.judge_verdict,
+        judge_tokens: r.judge_tokens,
+        judge_latency_ms: r.judge_latency_ms,
+        judge_error: r.judge_error,
+        turns: r.turns,
+      })),
+      stable: c.stable,
+      divergence_note: c.divergence_note,
+    })),
+    aggregate: {
+      total_cases: cases.length,
+      total_runs: allRuns.length,
+      judged_runs: judgedRuns.length,
+      passed_runs: passedRuns,
+      pass_rate: judgedRuns.length > 0 ? passedRuns / judgedRuns.length : 0,
+      stable_cases: cases.filter((c) => c.stable).length,
+      unstable_cases: cases.filter((c) => !c.stable).length,
+      total_tokens_in: totalIn,
+      total_tokens_out: totalOut,
+      estimated_cost_usd: cost,
+    },
+  };
+
+  const resultsPath = join(resultsDir, `${timestamp}.json`);
+  writeFileSync(resultsPath, JSON.stringify(jsonBody, null, 2), "utf-8");
+
+  const failing = cases.filter(
+    (c) =>
+      c.runs.some(
+        (r) => r.judge_verdict === null || !r.judge_verdict.overall_pass,
+      ) || !c.stable,
+  );
+  let failuresPath: string | null = null;
+  if (failing.length > 0) {
+    failuresPath = join(resultsDir, `${timestamp}-failures.md`);
+    writeFileSync(failuresPath, buildFailuresMarkdown(failing), "utf-8");
+  }
+
+  return { resultsPath, failuresPath, cost };
+}
+
+function buildFailuresMarkdown(failing: RagCaseResult[]): string {
+  const lines: string[] = [];
+  lines.push(`# RAG eval failures — ${new Date().toISOString()}`);
+  lines.push("");
+  lines.push(`${failing.length} failing/unstable case(s).`);
+  lines.push("");
+  for (const c of failing) {
+    lines.push(`## ${c.case.id}: ${c.case.description}`);
+    lines.push("");
+    lines.push(`**stable:** ${c.stable}${c.divergence_note ? ` — ${c.divergence_note}` : ""}`);
+    lines.push("");
+    for (const r of c.runs) {
+      lines.push(`### run ${r.run_index}`);
+      lines.push("");
+      if (r.judge_error) {
+        lines.push(`**judge error:** ${r.judge_error}`);
+      } else if (r.judge_verdict) {
+        const v = r.judge_verdict;
+        lines.push(`**overall_pass:** ${v.overall_pass}`);
+        lines.push(`- tool_routing: \`${v.tool_routing}\` — ${v.tool_routing_reason}`);
+        lines.push(`- grounding: \`${v.grounding}\` — ${v.grounding_reason}`);
+        lines.push(`- escalation: \`${v.escalation}\` — ${v.escalation_reason}`);
+        lines.push(`- response_quality: \`${v.response_quality}\` — ${v.response_quality_reason}`);
+        if (v.notes) lines.push(`- notes: ${v.notes}`);
+      }
+      lines.push("");
+      lines.push("**turns:**");
+      for (const t of r.turns) {
+        lines.push(`- user: ${t.user}`);
+        for (const inv of t.tool_invocations) {
+          lines.push(`  - \`${inv.name}\`(${JSON.stringify(inv.input)}) → ${previewOutput(inv.output).slice(0, 200)}…`);
+        }
+        lines.push(`  - reply: ${t.assistant_text.slice(0, 500)}${t.assistant_text.length > 500 ? "…" : ""}`);
+      }
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+
+async function runRagMode(cliArgs: string[]): Promise<void> {
+  const args = parseRagArgs(cliArgs);
+  const goldenPath = join(process.cwd(), "data", "golden-set-rag.json");
+  let cases = JSON.parse(readFileSync(goldenPath, "utf-8")) as GoldenRagCase[];
+  if (args.limit !== null) cases = cases.slice(0, args.limit);
+
+  console.log(
+    `Running ${cases.length} RAG case(s) × ${args.runs} run(s) against ${BASE_URL} (judge: ${JUDGE_MODEL})\n`,
+  );
+
+  const results: RagCaseResult[] = [];
+  for (const c of cases) {
+    process.stdout.write(
+      `  ${c.id.padEnd(8)} ${c.description.slice(0, 54).padEnd(56)} `,
+    );
+    try {
+      const r = await runRagCase(c, args.runs);
+      results.push(r);
+      const verdicts = r.runs.map((run) =>
+        run.judge_verdict === null
+          ? "ERR"
+          : run.judge_verdict.overall_pass
+            ? "P"
+            : "F",
+      );
+      const stableMark = r.stable ? "=" : "≠";
+      process.stdout.write(`[${verdicts.join(" ")}] ${stableMark}\n`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stdout.write(`ERROR  ${message}\n`);
+    }
+  }
+
+  const { resultsPath, failuresPath, cost } = emitRagResults(results, args);
+
+  const allRuns = results.flatMap((c) => c.runs);
+  const judgedRuns = allRuns.filter((r) => r.judge_verdict !== null);
+  const passedRuns = judgedRuns.filter((r) => r.judge_verdict!.overall_pass).length;
+  const totalIn = allRuns.reduce((s, r) => s + r.judge_tokens.in, 0);
+  const totalOut = allRuns.reduce((s, r) => s + r.judge_tokens.out, 0);
+
+  console.log("");
+  console.log(`judged runs:    ${passedRuns}/${judgedRuns.length} passed`);
+  console.log(
+    `stable cases:   ${results.filter((r) => r.stable).length}/${results.length}`,
+  );
+  console.log(
+    `tokens:         ${totalIn.toLocaleString()} in · ${totalOut.toLocaleString()} out`,
+  );
+  console.log(`estimated cost: $${cost.toFixed(4)} (Opus 4.7 public rates)`);
+  console.log(`results:        ${resultsPath}`);
+  if (failuresPath) console.log(`failures:       ${failuresPath}`);
+}
+
+// --- entry point ----------------------------------------------------------
+
 async function main(): Promise<void> {
+  const argv = process.argv.slice(2);
+  if (argv.includes("--rag")) {
+    await runRagMode(argv);
+    return;
+  }
+
   const goldenPath = join(process.cwd(), "data", "golden-set.json");
   const cases = JSON.parse(readFileSync(goldenPath, "utf-8")) as GoldenCase[];
 

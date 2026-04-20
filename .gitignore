@@ -17,6 +17,7 @@ logs/corpus-build.jsonl
 logs/embedding-build.jsonl
 logs/retrieval.jsonl
 logs/confidence.jsonl
+evals/results/
 !logs/sessions/.gitkeep
 !logs/handoffs/.gitkeep
 
