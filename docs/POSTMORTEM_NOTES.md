@@ -126,3 +126,16 @@ cleared. We chose not to patch the agent prompt to satisfy this
 judge nuance — tuning the agent's natural language to satisfy
 the rubric is the start of Goodhart drift. Better to ship with
 the documented miss than to optimize for the test.
+
+## Build note: Next.js module-scope state across route handlers
+
+Caught during debug-view smoke: lib/sessions.ts used a const
+Map() at module scope, which works in production but silently
+breaks in Next dev because /api/chat and /api/session/[id]
+compile as separate module instances. The session existed when
+written but appeared empty when read by a different route.
+Fix: hoist the Map to globalThis. Same pattern the existing
+sweeper-flag uses. Worth knowing because module-scope bugs
+don't surface in unit tests — only at the integration boundary
+where two routes share state. Real-world artifact of running
+the agent loop in a serverless framework.
