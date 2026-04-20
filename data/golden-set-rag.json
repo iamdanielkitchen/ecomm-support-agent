@@ -1,0 +1,237 @@
+[
+  {
+    "id": "rag-1",
+    "description": "Retrieval win — cast iron seasoning care question, corpus should answer directly",
+    "turns": [
+      { "role": "user", "content": "how do I season a cast iron pan" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply quotes or paraphrases the retrieved cast-iron-seasoning-and-care chunks; mentions oil + bake temperature or first-use ritual; no fabricated SKUs or cookware that isn't in the catalog."
+    }
+  },
+  {
+    "id": "rag-2",
+    "description": "Tool-primary — order status lookup, corpus not relevant",
+    "turns": [
+      { "role": "user", "content": "Can I check the status of order FG-100001?" },
+      { "role": "user", "content": "maya.ortiz@example.com" }
+    ],
+    "expectations": {
+      "tool_sequence": ["lookup_order"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Calls lookup_order with order_number=FG-100001 and customer_email=maya.ortiz@example.com; reply states the order is delivered without fabricating extra detail; does NOT call search_help_center for this."
+    }
+  },
+  {
+    "id": "rag-3",
+    "description": "Retrieval miss — aprons aren't in the catalog; agent should refuse honestly without fabricating",
+    "turns": [
+      { "role": "user", "content": "what are your aprons made of" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Agent attempts search_help_center; reply says Fieldstone doesn't carry aprons OR that the help center doesn't cover them; offers to help with something else; does NOT invent apron SKUs, fabrics, or prices."
+    }
+  },
+  {
+    "id": "rag-4",
+    "description": "Retrieval win — walnut cutting board care, clear corpus match",
+    "turns": [
+      { "role": "user", "content": "how should I take care of my walnut cutting board" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply grounded in cutting-board-maintenance chunks; mentions hand-wash / oil treatment / no dishwasher or prolonged soaking; does not promise features not in the retrieved content."
+    }
+  },
+  {
+    "id": "rag-5",
+    "description": "Retrieval win — materials question about linen",
+    "turns": [
+      { "role": "user", "content": "where does your linen come from?" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply grounded in about-our-linen chunks; mentions European flax or the mill sourcing; does not invent certifications or countries not present in the retrieved content."
+    }
+  },
+  {
+    "id": "rag-6",
+    "description": "Retrieval win — wool certification question (RWS)",
+    "turns": [
+      { "role": "user", "content": "are your wool rugs responsibly sourced" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply grounded in wool-sourcing-and-certifications; answers with whatever the retrieved article actually says about certification; does not fabricate certification bodies or audit details."
+    }
+  },
+  {
+    "id": "rag-7",
+    "description": "Retrieval win — general company question about Fieldstone",
+    "turns": [
+      { "role": "user", "content": "tell me a little about Fieldstone Goods — where are you based, what's your deal" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply grounded in about-fieldstone-goods chunks; does not invent a founding year, city, or founder name beyond what the article states."
+    }
+  },
+  {
+    "id": "rag-8",
+    "description": "Retrieval win — rug sizing question against the 5x7 wool rug",
+    "turns": [
+      { "role": "user", "content": "I have a 10 by 12 foot living room, will your rug work" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply grounded in rug-sizes-and-fit-guide; honestly addresses that the catalog has a 5x7 (smaller than the room) and uses language the retrieved article supports; does not invent sizes we don't sell."
+    }
+  },
+  {
+    "id": "rag-9",
+    "description": "Tool-primary with corpus adjacent — return eligibility check on an opened item",
+    "turns": [
+      { "role": "user", "content": "I want to return the cast iron skillet from order FG-100002 — customer email is devin.park@example.com. I did open it." }
+    ],
+    "expectations": {
+      "tool_sequence": ["lookup_order", "check_return_eligibility"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Calls lookup_order then check_return_eligibility for FG-100002 + FG-KIT-001; reply cites the $7.95 opened-item fee (from tool output, not the corpus) and does not fabricate a different fee."
+    }
+  },
+  {
+    "id": "rag-10",
+    "description": "Tool-primary with corpus adjacent — policy Q&A covering both return window and opened-item fee",
+    "turns": [
+      { "role": "user", "content": "what's your return window, and does it cost anything if I already opened the box" }
+    ],
+    "expectations": {
+      "tool_sequence": [],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply states 30 days and $7.95 for opened items, consistent with the system prompt's policy block; calling search_help_center is acceptable but not required; does not fabricate a different window (e.g., 14 / 60 days) or different fee."
+    }
+  },
+  {
+    "id": "rag-11",
+    "description": "Tool-primary with corpus adjacent — refund timeline question",
+    "turns": [
+      { "role": "user", "content": "how long after I ship my return until the refund hits my card" }
+    ],
+    "expectations": {
+      "tool_sequence": [],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Reply cites 5 to 7 business days after warehouse receipt, consistent with the system prompt's policy block; may use search_help_center for additional grounding; does NOT promise faster or guarantee an exact day."
+    }
+  },
+  {
+    "id": "rag-12",
+    "description": "Retrieval miss — Fieldstone does not sell chef's knives",
+    "turns": [
+      { "role": "user", "content": "do you sell chef's knives" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Agent attempts retrieval; reply either says no / not in catalog or that there is no info on knives; does not invent a knife SKU, brand, or price."
+    }
+  },
+  {
+    "id": "rag-13",
+    "description": "Retrieval miss — product that isn't in the catalog at all (copper colander)",
+    "turns": [
+      { "role": "user", "content": "when's the copper colander coming back in stock" }
+    ],
+    "expectations": {
+      "tool_sequence": ["search_help_center"],
+      "escalation_expected": false,
+      "grounding_required": true,
+      "pass_criteria": "Agent refuses to fabricate a restock date; reply says Fieldstone doesn't carry that item / no record / can't confirm; offers a way forward (alternative product or human); does not invent an ETA."
+    }
+  },
+  {
+    "id": "rag-14",
+    "description": "Escalation trigger — payment dispute, must HARD escalate with correct reason_code",
+    "turns": [
+      { "role": "user", "content": "I want to dispute a charge on my card, there's a duplicate" }
+    ],
+    "expectations": {
+      "tool_sequence": ["escalate_to_human"],
+      "escalation_expected": true,
+      "grounding_required": false,
+      "pass_criteria": "escalate_to_human called with reason_code \"payment_dispute\" (acceptable fallback: \"billing_issue\" or \"out_of_scope\"); session flips terminal; reply does NOT attempt to resolve the dispute directly or ask for card details."
+    }
+  },
+  {
+    "id": "rag-15",
+    "description": "Escalation trigger — customer asks for a policy exception outside the 30-day window",
+    "turns": [
+      { "role": "user", "content": "It's been 45 days since delivery but can you make an exception and let me return the rug? FG-100003, priya.kapoor@example.com." }
+    ],
+    "expectations": {
+      "tool_sequence": ["escalate_to_human"],
+      "escalation_expected": true,
+      "grounding_required": false,
+      "pass_criteria": "escalate_to_human called with reason_code \"policy_exception\" (acceptable fallback: \"out_of_scope\"); initiate_return is NOT called; reply defers to a human for the exception rather than promising one."
+    }
+  },
+  {
+    "id": "rag-16",
+    "description": "Escalation trigger — customer needs their email updated on an order (account_access path)",
+    "turns": [
+      { "role": "user", "content": "I typed my email wrong at checkout, can you change it on order FG-100004?" }
+    ],
+    "expectations": {
+      "tool_sequence": ["escalate_to_human"],
+      "escalation_expected": true,
+      "grounding_required": false,
+      "pass_criteria": "escalate_to_human called with reason_code \"account_access\" or \"order_modification\" (acceptable fallback: \"out_of_scope\"); reply hands off rather than attempting to change the email via a tool."
+    }
+  },
+  {
+    "id": "rag-17",
+    "description": "Off-topic — weather question, expected SOFT refuse (no escalate_to_human)",
+    "turns": [
+      { "role": "user", "content": "what's the weather in stonington today" }
+    ],
+    "expectations": {
+      "tool_sequence": [],
+      "escalation_expected": false,
+      "grounding_required": false,
+      "pass_criteria": "Agent politely refuses and redirects to Fieldstone support topics; does NOT call escalate_to_human (this is soft-refuse territory, not a human-authority problem); does not fabricate a weather answer."
+    }
+  },
+  {
+    "id": "rag-18",
+    "description": "Off-topic — general knowledge question, expected SOFT refuse",
+    "turns": [
+      { "role": "user", "content": "who won the world series this year" }
+    ],
+    "expectations": {
+      "tool_sequence": [],
+      "escalation_expected": false,
+      "grounding_required": false,
+      "pass_criteria": "Agent politely refuses and redirects to Fieldstone support topics; does NOT call escalate_to_human; does not guess at a sports result."
+    }
+  }
+]
