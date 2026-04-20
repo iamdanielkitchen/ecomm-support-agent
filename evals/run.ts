@@ -53,6 +53,15 @@ type ToolInvocation = {
   latency_ms: number;
 };
 
+type TurnConfidenceEvent = {
+  self_score: number | null;
+  self_reason: string | null;
+  retrieval_score: number | null;
+  retrieval_top1: number | null;
+  retrieval_gap: number | null;
+  used_retrieval: boolean;
+};
+
 type AgentEvent =
   | { type: "text_delta"; text: string }
   | { type: "tool_use_started"; name: string; input: unknown; id: string }
@@ -66,12 +75,14 @@ type AgentEvent =
     }
   | { type: "escalated"; handoff_id: string }
   | { type: "end_turn"; stop_reason: string }
+  | { type: "turn_confidence"; turn_index: number; confidence: TurnConfidenceEvent }
   | { type: "error"; message: string };
 
 type TurnResult = {
   user: string;
   assistant_text: string;
   tool_invocations: ToolInvocation[];
+  confidence: TurnConfidenceEvent | null;
   errored: boolean;
   error_message?: string;
 };
@@ -106,6 +117,7 @@ async function runTurn(
       user: message,
       assistant_text: "",
       tool_invocations: [],
+      confidence: null,
       errored: true,
       error_message: `HTTP ${resp.status}: ${JSON.stringify(body)}`,
     };
@@ -117,6 +129,7 @@ async function runTurn(
   let text = "";
   const pendingInputs = new Map<string, unknown>();
   const invocations: ToolInvocation[] = [];
+  let confidence: TurnConfidenceEvent | null = null;
   let errored = false;
   let errorMessage: string | undefined;
 
@@ -140,6 +153,9 @@ async function runTurn(
         pendingInputs.delete(ev.id);
         break;
       }
+      case "turn_confidence":
+        confidence = ev.confidence;
+        break;
       case "escalated":
       case "end_turn":
         break;
@@ -180,6 +196,7 @@ async function runTurn(
     user: message,
     assistant_text: text,
     tool_invocations: invocations,
+    confidence,
     errored,
     error_message: errorMessage,
   };
@@ -699,12 +716,55 @@ function buildFailuresMarkdown(failing: RagCaseResult[]): string {
       }
       lines.push("");
       lines.push("**turns:**");
-      for (const t of r.turns) {
-        lines.push(`- user: ${t.user}`);
+      for (let ti = 0; ti < r.turns.length; ti++) {
+        const t = r.turns[ti]!;
+        lines.push("");
+        lines.push(`**turn ${ti + 1} — user:** ${t.user}`);
         for (const inv of t.tool_invocations) {
-          lines.push(`  - \`${inv.name}\`(${JSON.stringify(inv.input)}) → ${previewOutput(inv.output).slice(0, 200)}…`);
+          lines.push(`- \`${inv.name}\`(${JSON.stringify(inv.input)})`);
+          if (inv.name === "search_help_center") {
+            const out = inv.output as {
+              chunks?: Array<{
+                chunk_id: string;
+                score: number;
+                title: string;
+                section_heading: string | null;
+              }>;
+              above_threshold?: boolean;
+            } | undefined;
+            const chunks = out?.chunks ?? [];
+            lines.push(`  - above_threshold: ${out?.above_threshold}`);
+            if (chunks.length === 0) {
+              lines.push(`  - (no chunks returned — NO_RELEVANT_CONTENT)`);
+            } else {
+              for (const c of chunks) {
+                const heading = c.section_heading ? ` — ${c.section_heading}` : "";
+                lines.push(`  - ${c.score.toFixed(3)} \`${c.chunk_id}\` (${c.title}${heading})`);
+              }
+            }
+          } else if (inv.name === "escalate_to_human") {
+            const out = inv.output as {
+              handoff_id?: string;
+              priority?: string;
+              expected_response?: string;
+            } | undefined;
+            lines.push(`  - input: ${JSON.stringify(inv.input)}`);
+            lines.push(`  - handoff: ${out?.handoff_id} (${out?.priority})`);
+          } else {
+            lines.push(`  - output: ${previewOutput(inv.output).slice(0, 400)}${previewOutput(inv.output).length > 400 ? "…" : ""}`);
+          }
         }
-        lines.push(`  - reply: ${t.assistant_text.slice(0, 500)}${t.assistant_text.length > 500 ? "…" : ""}`);
+        if (t.confidence) {
+          const c = t.confidence;
+          const self = c.self_score === null ? "null" : c.self_score.toFixed(2);
+          const retr = c.retrieval_score === null ? "null" : c.retrieval_score.toFixed(2);
+          const top1 = c.retrieval_top1 === null ? "null" : c.retrieval_top1.toFixed(3);
+          const gap = c.retrieval_gap === null ? "null" : c.retrieval_gap.toFixed(3);
+          lines.push(`- confidence: self=${self} retrieval=${retr} (top1=${top1}, gap=${gap}, used=${c.used_retrieval})`);
+          if (c.self_reason) lines.push(`  - self_reason: ${c.self_reason}`);
+        }
+        const reply = t.assistant_text;
+        lines.push(`- reply: ${reply.length > 800 ? reply.slice(0, 800) + "…" : reply}`);
       }
       lines.push("");
     }
