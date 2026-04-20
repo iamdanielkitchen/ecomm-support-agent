@@ -113,3 +113,16 @@ hit RPM ceilings well before they hit token ceilings.
   residual judge noise on borderline "we don't carry this" vs
   "we can't check right now" distinctions, not a systemic bug.
   Candidate for a prompt nuance later; not a ship-blocker.
+
+## Final eval result and the one documented miss
+
+Final pass rate: 53/54 (98.1%) across 18 cases × 3 runs after
+three targeted fixes. The single residual failure (rag-13, copper
+colander, run 2 of 3) was a judge-vs-agent phrasing edge case:
+the agent's reply "Our inventory team tracks those details" was
+read by the judge as implicit confirmation the product exists,
+while two other runs of the same case used phrasing the judge
+cleared. We chose not to patch the agent prompt to satisfy this
+judge nuance — tuning the agent's natural language to satisfy
+the rubric is the start of Goodhart drift. Better to ship with
+the documented miss than to optimize for the test.
