@@ -124,7 +124,7 @@ Implement in `lib/tools.ts`. Tool definitions below; implementations read/write 
 
 **`initiate_return`** — order_number, item_sku, reason (enum: `damaged|wrong_item|changed_mind|didnt_fit|quality_issue|other`), reason_note (optional string, max 500). Returns `{ rma: "RMA-YYYY-MM-DD-xxxx", label_url: "https://fieldstone.example/labels/..." }`. Only callable after eligibility check passes.
 
-**`escalate_to_human`** — reason_code (enum: `customer_requested_human|out_of_scope|tool_failure|emotional_distress|policy_exception_request|suspected_fraud_or_security|ambiguous_identity`), summary (string, max 300), priority (enum: `standard|high`). Writes handoff payload to `logs/handoffs/{session_id}.json` and marks session terminal.
+**`escalate_to_human`** — reason_code (enum: `payment_dispute|account_access|policy_exception|order_modification|billing_issue|tool_error|customer_requested_human|emotional_distress|suspected_fraud_or_security|ambiguous_identity|out_of_scope`), summary (string, max 300), priority (enum: `standard|high`). Writes handoff payload to `logs/handoffs/{session_id}.json` and marks session terminal. The enum was expanded during Path 2 tightening — see `docs/PATH_2_PLAN.md`.
 
 The `reason_code` enum is load-bearing — it's the architectural signal to contact-center platforms. Do not trim it.
 

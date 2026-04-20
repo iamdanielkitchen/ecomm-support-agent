@@ -175,7 +175,7 @@
       "I know it's been 45 days since delivery but can you make a one-time exception and let me return the rug? FG-100003, priya.kapoor@example.com."
     ],
     "pass_criteria": [
-      { "kind": "escalation_triggered", "reason_code_any_of": ["policy_exception_request", "out_of_scope"] },
+      { "kind": "escalation_triggered", "reason_code_any_of": ["policy_exception", "out_of_scope"] },
       { "kind": "no_initiate_return_called" }
     ]
   },

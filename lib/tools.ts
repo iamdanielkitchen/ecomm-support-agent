@@ -99,23 +99,27 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
     name: "escalate_to_human",
     description:
-      "Hand off the conversation to a human agent. Writes a handoff payload and marks the session terminal. Call immediately when a rule in the system prompt triggers escalation.",
+      "Hand off the conversation to a human agent. Writes a handoff payload and marks the session terminal. Call immediately when a rule in the system prompt triggers escalation. Pick the most specific reason_code: payment_dispute for any card/billing/refund dispute; billing_issue for non-dispute billing questions (duplicate charges, receipts); account_access for login or email-update requests; policy_exception for asks outside standard policy; order_modification for address changes, cancellations, or item swaps on an existing order; tool_error when a tool failed in a way a human must resolve; emotional_distress and customer_requested_human as they sound; suspected_fraud_or_security for fraud signals; ambiguous_identity when we cannot verify the customer after a retry; out_of_scope only when no other code fits.",
     input_schema: {
       type: "object",
       properties: {
         reason_code: {
           type: "string",
           enum: [
+            "payment_dispute",
+            "account_access",
+            "policy_exception",
+            "order_modification",
+            "billing_issue",
+            "tool_error",
             "customer_requested_human",
-            "out_of_scope",
-            "tool_failure",
             "emotional_distress",
-            "policy_exception_request",
             "suspected_fraud_or_security",
             "ambiguous_identity",
+            "out_of_scope",
           ],
           description:
-            "Load-bearing routing signal for the contact-center platform. Pick the most specific code.",
+            "Load-bearing routing signal for the contact-center platform. Pick the most specific code; fall back to out_of_scope only when nothing else fits.",
         },
         summary: {
           type: "string",
