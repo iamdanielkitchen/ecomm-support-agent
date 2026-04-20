@@ -21,10 +21,14 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const BASE = process.env.FIELDSTONE_BASE_URL ?? "http://localhost:3000";
 
-const QUERIES = [
+const DEFAULT_QUERIES = [
   "how do I season a cast iron pan",
   "what are your aprons made of",
 ];
+
+// Positional CLI args override the default set; `pnpm agent:smoke -- "q1" "q2"`.
+const cliQueries = process.argv.slice(2).filter((a) => a !== "--");
+const QUERIES = cliQueries.length > 0 ? cliQueries : DEFAULT_QUERIES;
 
 type StreamEvent =
   | { type: "text_delta"; text: string }
