@@ -29,16 +29,26 @@ export type SessionState = {
 
 // In-memory store. CLAUDE.md is explicit: no DB, no Redis. Process restart =
 // clean slate. The postmortem line is "would swap to Redis at 10x volume".
-const sessions = new Map<string, SessionState>();
-
+//
+// Hoisted to globalThis so /api/chat and /api/session/[id] share one Map in
+// Next dev — each route compiles to its own module instance with a private
+// top-level `const`, which in dev caused sessions to look empty when /debug
+// queried them immediately after a chat turn. In prod the routes share a
+// process; in dev the globalThis handle is what keeps them in sync.
 const TTL_MS = 30 * 60 * 1000; // 30 minutes
 const SWEEP_EVERY_MS = 5 * 60 * 1000; // 5 minutes
 
-// Guard against setInterval running in every hot-reload in dev. We only need
-// one sweeper per process.
 declare global {
   // eslint-disable-next-line no-var
   var __fieldstoneSweeperStarted: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var __fieldstoneSessions: Map<string, SessionState> | undefined;
+}
+
+const sessions: Map<string, SessionState> =
+  globalThis.__fieldstoneSessions ?? new Map<string, SessionState>();
+if (!globalThis.__fieldstoneSessions) {
+  globalThis.__fieldstoneSessions = sessions;
 }
 
 function startSweeper(): void {

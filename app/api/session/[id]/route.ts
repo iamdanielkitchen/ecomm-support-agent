@@ -33,6 +33,7 @@ export async function GET(_req: Request, ctx: Ctx): Promise<Response> {
     escalated: session?.escalated ?? false,
     handoff_id: session?.handoff_id ?? null,
     tool_trace: session?.tool_trace ?? [],
+    confidence_per_turn: session?.confidence_per_turn ?? [],
     turns,
     handoff,
   });

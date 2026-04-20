@@ -18,6 +18,7 @@ logs/embedding-build.jsonl
 logs/retrieval.jsonl
 logs/confidence.jsonl
 evals/results/
+docs/failure-summary.md
 !logs/sessions/.gitkeep
 !logs/handoffs/.gitkeep
 

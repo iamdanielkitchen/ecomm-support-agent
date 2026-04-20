@@ -419,6 +419,14 @@ type SearchResult = {
   chunks: SearchChunkRef[];
   request_id: string;
   above_threshold: boolean;
+  // Timing + token breakdown surfaced for the debug view. The agent itself
+  // ignores these; the model sees them as noise fields and does not branch
+  // on them. Kept in the tool output (rather than a side channel) so the
+  // session trace captures them without plumbing.
+  query_tokens: number;
+  query_embedding_ms: number;
+  cosine_ms: number;
+  total_latency_ms: number;
 };
 
 const NO_CONTENT_SENTINEL =
@@ -457,32 +465,41 @@ async function searchHelpCenter(
   // UUID stamped here is enough for postmortem correlation.
   const request_id = `${ctx.session_id}:${randomUUID().slice(0, 8)}`;
 
-  const { chunks, scores } = await retrieve(input.query.trim(), {
+  const result = await retrieve(input.query.trim(), {
     k: 5,
     request_id,
   });
 
-  if (chunks.length === 0) {
+  const timing = {
+    query_tokens: result.query_tokens,
+    query_embedding_ms: result.query_embedding_ms,
+    cosine_ms: result.cosine_ms,
+    total_latency_ms: result.latency_ms,
+  };
+
+  if (result.chunks.length === 0) {
     return {
       content: NO_CONTENT_SENTINEL,
       chunks: [],
       request_id,
       above_threshold: false,
+      ...timing,
     };
   }
 
-  const refs: SearchChunkRef[] = chunks.map((c, i) => ({
+  const refs: SearchChunkRef[] = result.chunks.map((c, i) => ({
     chunk_id: c.chunk_id,
-    score: scores[i] ?? 0,
+    score: result.scores[i] ?? 0,
     title: c.title,
     section_heading: c.section_heading,
   }));
 
   return {
-    content: joinChunksAsMarkdown(chunks),
+    content: joinChunksAsMarkdown(result.chunks),
     chunks: refs,
     request_id,
     above_threshold: true,
+    ...timing,
   };
 }
 
