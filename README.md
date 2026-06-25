@@ -1,30 +1,19 @@
 # Fieldstone Support Agent
 
-A conversational support agent for a fictional e-commerce store, built to test
-agent-deployment patterns end to end — retrieval, evals, escalation routing, and
-confidence instrumentation.
+A support agent that looks up orders, checks return eligibility, creates returns,
+and escalates to a human — each through a typed tool, not prompt improvisation.
+When the order tools can't answer it, it retrieves from a 50-article help center
+built from the store's own data.
 
-**Live:** [ecomm-support-agent.vercel.app](https://ecomm-support-agent.vercel.app) ·
-**Debug view:** `/debug?session={id}` is the actual interview surface — the chat UI is
-the input device; the debug view is where the agent's decisions are legible.
+The point isn't the chatbot. It's everything around shipping one: retrieval
+thresholds calibrated from smoke tests, an 18-case golden set judged by Opus
+(98.1% pass rate), dual-signal confidence so you can see when the model and
+the retrieval score disagree, and escalation as a first-class tool with a
+typed `reason_code` enum a contact center would actually route on.
 
-## What this is
-
-Ember is a narrow support assistant for Fieldstone Goods. She does four things
-through typed tools: look up orders, check return eligibility, create returns,
-and escalate to a human with a typed reason code. A fifth tool,
-`search_help_center`, retrieves against a 50-article help-center corpus
-generated from the store's own source-of-truth data — for the care, materials,
-and product-existence questions the other tools can't cover.
-
-The agent is intentionally narrow; the architecture around it is the point.
-Every decision you'd make shipping a customer-facing agent for a real business
-is present: retrieval-threshold calibration from a measured smoke, LLM-judge
-golden-set evals with stability double-runs, dual-signal confidence scoring
-(self-scored + retrieval-derived, independently), and escalation through a
-first-class tool with a typed `reason_code` enum meant to plug into a
-contact-center platform. I'm not a career engineer; I'm an operator who ships
-with AI. This is what that lens looks like applied to a support-agent build.
+**Live:** [ecomm-support-agent.vercel.app](https://ecomm-support-agent.vercel.app)
+**Debug:** `/debug?session={id}` — the chat is the input; the debug view is where
+the agent's decisions are legible. That's the part worth looking at.
 
 ## Demo paths
 
@@ -38,15 +27,14 @@ with AI. This is what that lens looks like applied to a support-agent build.
   inference.
 - **Hard escalation.** *"I want to dispute a charge on my card"* →
   `escalate_to_human` on turn one with `reason_code: "payment_dispute"`, session
-  terminal. The eleven-value enum is the signal a contact-center platform would
-  route on.
+  terminal. The eleven-value enum is what a contact-center platform would route on.
 - **Retrieval with confidence disagreement.** *"How do I season a cast iron
   pan?"* → `search_help_center` pulls five on-topic chunks, the reply is solidly
   grounded. Haiku sees the reply without the chunks and rates it under-specific
   (~0.50); the retrieval-derived score sees top-1 cosine 0.66 and reads high
   (~0.91). Open `/debug` on this turn — the dual-signal panel shows the
-  disagreement with the structural reason alongside. **The disagreement is the
-  demo-worthy moment**, not a bug.
+  disagreement with the structural reason alongside. The disagreement is the
+  demo-worthy moment, not a bug.
 
 ## Architecture
 
@@ -73,9 +61,8 @@ The 50-article help-center corpus is generated once, offline, by Sonnet against
 overlaps `store.json` must derive from it. Chunked on H2 boundaries
 (265 chunks, ~160-token median), embedded once with Voyage batch, written to
 a ~5 MB JSON. At runtime the in-memory cosine takes ~2 ms; the dominant latency
-is the query-embedding round trip (~250 ms). The pipeline is three idempotent
-pnpm scripts — generate, chunk, embed — each re-runnable against the previous
-stage's artifact.
+is the query-embedding round trip (~250 ms). Three idempotent pnpm scripts —
+generate, chunk, embed — each re-runnable against the previous stage's artifact.
 
 See [`docs/architecture.md`](docs/architecture.md) for the runtime and build-time
 diagrams.
@@ -97,8 +84,7 @@ Reproduce: `pnpm dev` in one terminal, `pnpm eval:rag` in another.
 
 ## Postmortem
 
-The build decisions and what I learned doing it:
-[`docs/POSTMORTEM.md`](docs/POSTMORTEM.md).
+Build decisions and what I learned: [`docs/POSTMORTEM.md`](docs/POSTMORTEM.md).
 
 ## Run it locally
 
