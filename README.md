@@ -1,15 +1,19 @@
 # Fieldstone Support Agent
 
-A support agent that looks up orders, checks return eligibility, creates returns,
-and escalates to a human — each through a typed tool, not prompt improvisation.
-When the order tools can't answer it, it retrieves from a 50-article help center
-built from the store's own data.
+A support agent you can actually trust with a real customer — it takes any
+query and reliably gives a useful answer, and the word "reliably" is earned:
+what it knows and doesn't know is measured, and it hands off the moment it
+isn't sure. Escalating isn't the system failing; it's the system working
+exactly as designed.
 
-The point isn't the chatbot. It's everything around shipping one: retrieval
-thresholds calibrated from smoke tests, an 18-case golden set judged by Opus
-(98.1% pass rate), dual-signal confidence so you can see when the model and
-the retrieval score disagree, and escalation as a first-class tool with a
-typed `reason_code` enum a contact center would actually route on.
+Every support agent claims it's reliable. Fieldstone is built around the
+opposite discipline: an agent whose most valuable move is recognizing the
+edge of its own knowledge and handing off there, every time, without
+exception. Nothing runs on inference the model was left to improvise — every
+action is a typed decision (order lookup, return eligibility, escalation),
+and confidence is never asserted, it's checked against two independent
+signals in the open. When the order tools can't answer it, it retrieves from
+a 50-article help center built from the store's own data.
 
 **Live:** [ecomm-support-agent.vercel.app](https://ecomm-support-agent.vercel.app)
 **Debug:** `/debug?session={id}` — the chat is the input; the debug view is where
