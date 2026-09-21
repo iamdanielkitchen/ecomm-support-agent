@@ -122,6 +122,7 @@ export function createAgentStream(
           const toolCtx: ToolContext = {
             session_id: session.session_id,
             transcript: session.messages,
+            verified_orders: session.verified_orders,
             now: () => new Date(),
             onEscalate: (handoff_id) => {
               markEscalated(session, handoff_id);

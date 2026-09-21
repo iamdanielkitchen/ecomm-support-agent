@@ -41,7 +41,7 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
     name: "check_return_eligibility",
     description:
-      "Check whether a specific item on a specific order is eligible for return. Returns {eligible, reason, fee_usd?}. Call before telling a customer whether something can be returned.",
+      "Check whether a specific item on a specific order is eligible for return. Requires a successful lookup_order for this order in this session. Returns {eligible, reason, fee_usd?}. Call before telling a customer whether something can be returned.",
     input_schema: {
       type: "object",
       properties: {
@@ -54,7 +54,7 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
     name: "initiate_return",
     description:
-      "Create a return for an eligible item. Only call after check_return_eligibility returned eligible:true AND the customer has explicitly confirmed they want to proceed. Returns {rma, label_url}.",
+      "Create a return for an eligible item. Requires a successful lookup_order for this order in this session. Only call after check_return_eligibility returned eligible:true AND the customer has explicitly confirmed they want to proceed. Returns {rma, label_url}.",
     input_schema: {
       type: "object",
       properties: {
@@ -144,6 +144,7 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
 export type ToolContext = {
   session_id: string;
   transcript: Anthropic.MessageParam[]; // full conversation up to this point
+  verified_orders: Set<string>; // same server-owned set across this session's turns
   now: () => Date; // injectable for deterministic eval runs
   onEscalate?: (handoffId: string) => void; // session flips terminal
 };
@@ -162,7 +163,7 @@ export async function runTool(
   try {
     switch (name) {
       case "lookup_order":
-        return { ok: true, value: lookupOrder(input as LookupOrderInput) };
+        return { ok: true, value: lookupOrder(input as LookupOrderInput, ctx) };
       case "check_return_eligibility":
         return {
           ok: true,
@@ -197,8 +198,11 @@ export async function runTool(
 type LookupOrderInput = { order_number: string; customer_email: string };
 
 function lookupOrder(
-  input: LookupOrderInput
+  input: LookupOrderInput,
+  ctx: ToolContext
 ): Order | { error: "identity_mismatch" } | null {
+  // A failed re-check must not leave an earlier grant for this order active.
+  ctx.verified_orders.delete(input.order_number);
   const order = findOrder(input.order_number);
   if (!order) return null;
   if (
@@ -206,6 +210,7 @@ function lookupOrder(
   ) {
     return { error: "identity_mismatch" };
   }
+  ctx.verified_orders.add(order.order_number);
   return order;
 }
 
@@ -233,6 +238,13 @@ function checkReturnEligibility(
   input: EligibilityInput,
   ctx: ToolContext
 ): EligibilityResult {
+  // Check before reading order data. initiateReturn reuses this guard before
+  // any mutation, even if the model skips lookup or ignores its failure.
+  if (!ctx.verified_orders.has(input.order_number)) {
+    throw new Error(
+      "identity_verification_required: call lookup_order with the order number and matching customer email first"
+    );
+  }
   const order = findOrder(input.order_number);
   if (!order) return { eligible: false, reason: "order_not_found" };
 

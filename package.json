@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test lib/*.test.ts",
     "eval": "tsx evals/run.ts",
     "eval:rag": "tsx --env-file=.env.local evals/run.ts --rag",
     "corpus:generate": "tsx --env-file=.env.local scripts/generate-corpus.ts",
