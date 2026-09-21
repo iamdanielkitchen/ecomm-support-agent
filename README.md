@@ -60,6 +60,13 @@ consume. Dual-signal confidence is instrumented but not gating — measure
 calibration first; the disagreement cases have been more informative than
 either score alone.
 
+Order identity is enforced inside the return tools, not just requested in the
+prompt. A successful `lookup_order` grants access to that exact order for the
+current in-memory session. Both return tools reject unverified orders before
+reading eligibility or changing return state. A failed re-check revokes that
+order's grant; a new session starts without grants. Customer confirmation is
+still a model instruction, not a separate runtime authorization check.
+
 The 50-article help-center corpus is generated once, offline, by Sonnet against
 `data/store.json` as authoritative ground truth — every factual claim that
 overlaps `store.json` must derive from it. Chunked on H2 boundaries
@@ -105,6 +112,10 @@ pnpm corpus:embed
 # RAG eval suite against the local server:
 pnpm eval:rag
 ```
+
+Run `pnpm test` for offline identity-boundary regressions (no API keys or server
+needed). These exercise direct tool calls, order/session isolation, failed
+verification, and verified multi-turn returns against a fixed fixture date.
 
 ## Repo layout
 

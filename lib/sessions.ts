@@ -23,6 +23,7 @@ export type SessionState = {
   messages: Anthropic.MessageParam[];
   tool_trace: ToolInvocation[];
   confidence_per_turn: TurnConfidenceRecord[];
+  verified_orders: Set<string>; // server-only; granted by successful lookup_order
   escalated: boolean;
   handoff_id?: string;
 };
@@ -75,6 +76,7 @@ export function getOrCreateSession(session_id: string): SessionState {
       messages: [],
       tool_trace: [],
       confidence_per_turn: [],
+      verified_orders: new Set(),
       escalated: false,
     };
     sessions.set(session_id, s);
