@@ -21,6 +21,7 @@ export type SessionState = {
   created_at: number;
   last_activity: number;
   messages: Anthropic.MessageParam[];
+  verified_order_numbers: Set<string>; // populated only by successful lookup_order
   tool_trace: ToolInvocation[];
   confidence_per_turn: TurnConfidenceRecord[];
   escalated: boolean;
@@ -73,6 +74,7 @@ export function getOrCreateSession(session_id: string): SessionState {
       created_at: now,
       last_activity: now,
       messages: [],
+      verified_order_numbers: new Set(),
       tool_trace: [],
       confidence_per_turn: [],
       escalated: false,

@@ -41,7 +41,7 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
     name: "check_return_eligibility",
     description:
-      "Check whether a specific item on a specific order is eligible for return. Returns {eligible, reason, fee_usd?}. Call before telling a customer whether something can be returned.",
+      "Check whether a specific item on a specific order is eligible for return. Requires a successful lookup_order with matching email for this order in the current session; otherwise returns identity_verification_required. Returns {eligible, reason, fee_usd?}. Call before telling a customer whether something can be returned.",
     input_schema: {
       type: "object",
       properties: {
@@ -54,7 +54,7 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
   {
     name: "initiate_return",
     description:
-      "Create a return for an eligible item. Only call after check_return_eligibility returned eligible:true AND the customer has explicitly confirmed they want to proceed. Returns {rma, label_url}.",
+      "Create a return for an eligible item. Requires a successful lookup_order with matching email for this order in the current session; otherwise returns identity_verification_required. Only call after check_return_eligibility returned eligible:true AND the customer has explicitly confirmed they want to proceed. Returns {rma, label_url}.",
     input_schema: {
       type: "object",
       properties: {
@@ -144,6 +144,7 @@ export const TOOL_SCHEMAS: Anthropic.Tool[] = [
 export type ToolContext = {
   session_id: string;
   transcript: Anthropic.MessageParam[]; // full conversation up to this point
+  verified_order_numbers: Set<string>; // server-owned session state, never tool input
   now: () => Date; // injectable for deterministic eval runs
   onEscalate?: (handoffId: string) => void; // session flips terminal
 };
@@ -162,7 +163,7 @@ export async function runTool(
   try {
     switch (name) {
       case "lookup_order":
-        return { ok: true, value: lookupOrder(input as LookupOrderInput) };
+        return { ok: true, value: lookupOrder(input as LookupOrderInput, ctx) };
       case "check_return_eligibility":
         return {
           ok: true,
@@ -197,8 +198,11 @@ export async function runTool(
 type LookupOrderInput = { order_number: string; customer_email: string };
 
 function lookupOrder(
-  input: LookupOrderInput
+  input: LookupOrderInput,
+  ctx: ToolContext
 ): Order | { error: "identity_mismatch" } | null {
+  // A failed retry must not leave a previous verification for this order active.
+  ctx.verified_order_numbers.delete(input.order_number);
   const order = findOrder(input.order_number);
   if (!order) return null;
   if (
@@ -206,6 +210,7 @@ function lookupOrder(
   ) {
     return { error: "identity_mismatch" };
   }
+  ctx.verified_order_numbers.add(order.order_number);
   return order;
 }
 
@@ -233,6 +238,11 @@ function checkReturnEligibility(
   input: EligibilityInput,
   ctx: ToolContext
 ): EligibilityResult {
+  // Guard before reading the order: even ineligibility reasons reveal details.
+  // initiateReturn calls this same guard before any mutation.
+  if (!ctx.verified_order_numbers.has(input.order_number)) {
+    throw new Error("identity_verification_required");
+  }
   const order = findOrder(input.order_number);
   if (!order) return { eligible: false, reason: "order_not_found" };
 

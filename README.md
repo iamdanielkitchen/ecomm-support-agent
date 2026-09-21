@@ -51,6 +51,13 @@ everything: session state in a `Map` on `globalThis`, corpus + embeddings
 loaded from JSON at module init. No database, no Redis, no vector store, no
 auth layer beyond identity checks inside the tools. Deployed to Vercel.
 
+Return tools enforce that identity check in code: a successful `lookup_order`
+authorizes only that order in the current session. Without it, eligibility
+checks and return creation fail with `identity_verification_required` before
+reading or changing the order. A failed email retry revokes that order's
+verification. This is the demo's email/order-number check, not account
+authentication; explicit customer confirmation remains a model instruction.
+
 Sonnet 4.6 for the agent turn, Haiku 4.5 for the post-turn confidence side
 call, Opus 4.7 for the eval judge — each tier matched to the task.
 `escalate_to_human` is a first-class tool, not a prompt rule, because the
@@ -105,6 +112,11 @@ pnpm corpus:embed
 # RAG eval suite against the local server:
 pnpm eval:rag
 ```
+
+Run `pnpm test` for deterministic return-tool safety tests and a mocked agent
+stream test; no API keys or running server are needed. The tool tests reset
+the in-memory store between cases and pin the clock to the fixture's April
+2026 date. These checks complement, rather than replace, the live-model evals.
 
 ## Repo layout
 
